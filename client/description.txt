@@ -1,0 +1,6 @@
+->  è presente dentro ogni edge un file di configurazione (config.json) che è usato dall'edge per essere eseguito nella maniera corretta:
+    tra le informazioni usate ci sono:
+    -server: indirizzo IP + numero di porta del server
+    -deviceID: hash identificativo del dispositivo, generato con MD5 a partire dalla stringa 'devicei' (i è un contatore incrementale)
+    -parkID: hash identificativo del parco, generato con MD5 a partire dal nome del parco (es. parco friuli)
+    -interval: numero di secondi tra l'invio delle misure e il successivo invio.

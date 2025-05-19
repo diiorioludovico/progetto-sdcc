@@ -1,0 +1,6 @@
+{
+    "server": "localhost:50051",
+    "deviceID": "787f8e8878e32ce257ded1c3460f31b3", 
+    "parkID": "41e8452d15dfe9673bb3b6c77bd501b4",
+    "interval": "10"
+}
