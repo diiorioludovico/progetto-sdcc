@@ -33,8 +33,6 @@ class ParkSensor:
             hour = 4
         
         month = int(timestamp[5:7]) - 1
-        print(month)
-        print(hour)
 
         return hour, month
 

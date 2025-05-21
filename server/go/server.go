@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	menu "progetto/server/go/menu"
 	pb "progetto/server/go/proto"
 
 	"google.golang.org/grpc"
@@ -39,9 +40,9 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterSensorServiceServer(s, &server{})
+	go menu.ShowMenu()
 	fmt.Println("Server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		fmt.Println("ERROR: failed to serve: ", err)
 	}
-
 }
