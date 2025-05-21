@@ -18,6 +18,13 @@ type Sensor struct {
 	serial_number string
 }
 
+type Park struct {
+	id          int
+	location    string
+	name        string
+	is_observed bool
+}
+
 func ShowMenu(db *sql.DB) {
 	reader := bufio.NewReader(os.Stdin)
 
@@ -104,6 +111,27 @@ func showSensors(db *sql.DB) {
 
 func showParks(db *sql.DB) {
 	fmt.Println("\nshowParks")
+	var parks []Park
+
+	rows, err := db.Query("SELECT * FROM parks")
+	if err != nil {
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	for rows.Next() {
+		var park Park
+		if err := rows.Scan(&park.id, &park.location, &park.name, &park.is_observed); err != nil {
+			fmt.Println("ERROR: scan error: ", err)
+		}
+
+		parks = append(parks, park)
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Println("ERROR: rows error: ", err)
+	} else {
+		parkTable(parks)
+	}
 }
 
 func addSensor(db *sql.DB) {
@@ -123,7 +151,7 @@ func removePark(db *sql.DB) {
 }
 
 func waitForEnter(reader *bufio.Reader) {
-	fmt.Print("\nPress ENTER to return to rhe menu.")
+	fmt.Print("\nPress ENTER to return to the menu.")
 	reader.ReadString('\n')
 }
 
@@ -135,6 +163,19 @@ func sensorTable(sensors []Sensor) {
 
 	for _, s := range sensors {
 		fmt.Fprintf(writer, "%d\t%t\t%d\t%s\n", s.id, s.is_active, s.park_id.Int64, s.serial_number)
+	}
+
+	writer.Flush()
+}
+
+func parkTable(parks []Park) {
+	// Tabwriter per stampa tabellare allineata
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "\nid\tilocation\tname\tis observed")
+	fmt.Fprintln(writer, "--\t----\t-----\t-----")
+
+	for _, p := range parks {
+		fmt.Fprintf(writer, "%d\t%s\t%s\t%t\n", p.id, p.location, p.name, p.is_observed)
 	}
 
 	writer.Flush()
