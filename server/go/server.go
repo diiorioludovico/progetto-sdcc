@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"net"
-	menu "progetto/server/go/menu"
+	"progetto/server/go/menu"
 	pb "progetto/server/go/proto"
+
+	_ "github.com/go-sql-driver/mysql"
 
 	"google.golang.org/grpc"
 )
@@ -40,7 +43,22 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterSensorServiceServer(s, &server{})
-	go menu.ShowMenu()
+
+	conn := "root:root@tcp(localhost:3306)/edgedb"
+	db, err := sql.Open("mysql", conn)
+	if err != nil {
+		fmt.Println("ERROR: problem in opening db connection: ", err)
+	}
+	defer db.Close()
+
+	//verifica della connessione
+	if err := db.Ping(); err != nil {
+		fmt.Println("ERROR: ping error: ", err)
+	} else {
+		fmt.Println("INFO: successful connection to db")
+	}
+
+	go menu.ShowMenu(db)
 	fmt.Println("Server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		fmt.Println("ERROR: failed to serve: ", err)
