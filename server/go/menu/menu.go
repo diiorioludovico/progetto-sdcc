@@ -44,7 +44,7 @@ func ShowMenu(db *sql.DB) {
 		case "2":
 			showParks(db)
 		case "3":
-			addSensor(db)
+			addSensor(db, reader)
 		case "4":
 			addPark(db)
 		case "5":
@@ -85,13 +85,15 @@ func printMenu() {
 }
 
 func showSensors(db *sql.DB) {
-	fmt.Println("\nshowSensors")
+	//fmt.Println("\nshowSensors")
 	var sensors []Sensor
 
 	rows, err := db.Query("SELECT * FROM sensors")
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
+
+	var count int
 
 	for rows.Next() {
 		var sen Sensor
@@ -100,23 +102,30 @@ func showSensors(db *sql.DB) {
 		}
 
 		sensors = append(sensors, sen)
+		count += 1
 	}
 
 	if err := rows.Err(); err != nil {
 		fmt.Println("ERROR: rows error: ", err)
-	} else {
+	} else if count > 0 {
 		sensorTable(sensors)
+	} else {
+		fmt.Println("There are not sensor records")
 	}
 }
 
 func showParks(db *sql.DB) {
-	fmt.Println("\nshowParks")
+	//fmt.Println("\nshowParks")
 	var parks []Park
 
 	rows, err := db.Query("SELECT * FROM parks")
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
+	} else {
+		fmt.Println("Numero di recod recuperati: ")
 	}
+
+	var count int
 
 	for rows.Next() {
 		var park Park
@@ -125,17 +134,29 @@ func showParks(db *sql.DB) {
 		}
 
 		parks = append(parks, park)
+		count += 1
 	}
 
 	if err := rows.Err(); err != nil {
 		fmt.Println("ERROR: rows error: ", err)
-	} else {
+	} else if count > 0 {
 		parkTable(parks)
+	} else {
+		fmt.Println("There are not park records")
 	}
 }
 
-func addSensor(db *sql.DB) {
-	fmt.Println("\naddSensor")
+func addSensor(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\naddSensor")
+	fmt.Print("\nInsert sensor serial number: ")
+	// Legge l’input da tastiera
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	_, err := db.Exec("INSERT INTO sensors(serial_number) VALUES(?)", input)
+	if err != nil {
+		fmt.Println("ERROR: error in inserting new sensor: ", err)
+	}
 }
 
 func addPark(db *sql.DB) {
@@ -158,7 +179,7 @@ func waitForEnter(reader *bufio.Reader) {
 func sensorTable(sensors []Sensor) {
 	// Tabwriter per stampa tabellare allineata
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(writer, "\nid\tis Active\tpark id\tserial number")
+	fmt.Fprintln(writer, "\nid\tis active\tpark id\tserial number")
 	fmt.Fprintln(writer, "--\t----\t-----\t-----")
 
 	for _, s := range sensors {
@@ -171,7 +192,7 @@ func sensorTable(sensors []Sensor) {
 func parkTable(parks []Park) {
 	// Tabwriter per stampa tabellare allineata
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(writer, "\nid\tilocation\tname\tis observed")
+	fmt.Fprintln(writer, "\nid\tlocation\tname\tis observed")
 	fmt.Fprintln(writer, "--\t----\t-----\t-----")
 
 	for _, p := range parks {
