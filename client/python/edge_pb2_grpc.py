@@ -39,12 +39,23 @@ class SensorServiceStub(object):
                 request_serializer=edge__pb2.SensorData.SerializeToString,
                 response_deserializer=edge__pb2.Response.FromString,
                 _registered_method=True)
+        self.Configuration = channel.unary_unary(
+                '/edge.SensorService/Configuration',
+                request_serializer=edge__pb2.SensorIdentification.SerializeToString,
+                response_deserializer=edge__pb2.CommunicationConfiguration.FromString,
+                _registered_method=True)
 
 
 class SensorServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SendData(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Configuration(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +68,11 @@ def add_SensorServiceServicer_to_server(servicer, server):
                     servicer.SendData,
                     request_deserializer=edge__pb2.SensorData.FromString,
                     response_serializer=edge__pb2.Response.SerializeToString,
+            ),
+            'Configuration': grpc.unary_unary_rpc_method_handler(
+                    servicer.Configuration,
+                    request_deserializer=edge__pb2.SensorIdentification.FromString,
+                    response_serializer=edge__pb2.CommunicationConfiguration.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +102,33 @@ class SensorService(object):
             '/edge.SensorService/SendData',
             edge__pb2.SensorData.SerializeToString,
             edge__pb2.Response.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Configuration(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/edge.SensorService/Configuration',
+            edge__pb2.SensorIdentification.SerializeToString,
+            edge__pb2.CommunicationConfiguration.FromString,
             options,
             channel_credentials,
             insecure,

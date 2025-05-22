@@ -24,17 +24,22 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nedge.proto\x12\x04\x65\x64ge\"\x91\x01\n\nSensorData\x12\x10\n\x08\x64\x65viceID\x18\x01 \x01(\t\x12\x0e\n\x06parkID\x18\x02 \x01(\t\x12\x13\n\x0btemperature\x18\x03 \x01(\x02\x12\x10\n\x08humidity\x18\x04 \x01(\x02\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x13\n\x0b\x61ir_quality\x18\x06 \x01(\x02\x12\x11\n\ttimestamp\x18\x07 \x01(\t\",\n\x08Response\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x32=\n\rSensorService\x12,\n\x08SendData\x12\x10.edge.SensorData\x1a\x0e.edge.Responseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nedge.proto\x12\x04\x65\x64ge\"\x91\x01\n\nSensorData\x12\x10\n\x08\x64\x65viceID\x18\x01 \x01(\t\x12\x0e\n\x06parkID\x18\x02 \x01(\t\x12\x13\n\x0btemperature\x18\x03 \x01(\x02\x12\x10\n\x08humidity\x18\x04 \x01(\x02\x12\x12\n\nbrightness\x18\x05 \x01(\x02\x12\x13\n\x0b\x61ir_quality\x18\x06 \x01(\x02\x12\x11\n\ttimestamp\x18\x07 \x01(\t\"-\n\x14SensorIdentification\x12\x15\n\rserial_number\x18\x01 \x01(\t\",\n\x08Response\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"P\n\x1a\x43ommunicationConfiguration\x12\x10\n\x08\x64\x65viceID\x18\x01 \x01(\t\x12\x0e\n\x06parkID\x18\x02 \x01(\t\x12\x10\n\x08interval\x18\x03 \x01(\x02\x32\x8c\x01\n\rSensorService\x12,\n\x08SendData\x12\x10.edge.SensorData\x1a\x0e.edge.Response\x12M\n\rConfiguration\x12\x1a.edge.SensorIdentification\x1a .edge.CommunicationConfigurationB Z\x1eprogetto/server/go/proto;protob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'edge_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
+  _globals['DESCRIPTOR']._loaded_options = None
+  _globals['DESCRIPTOR']._serialized_options = b'Z\036progetto/server/go/proto;proto'
   _globals['_SENSORDATA']._serialized_start=21
   _globals['_SENSORDATA']._serialized_end=166
-  _globals['_RESPONSE']._serialized_start=168
-  _globals['_RESPONSE']._serialized_end=212
-  _globals['_SENSORSERVICE']._serialized_start=214
-  _globals['_SENSORSERVICE']._serialized_end=275
+  _globals['_SENSORIDENTIFICATION']._serialized_start=168
+  _globals['_SENSORIDENTIFICATION']._serialized_end=213
+  _globals['_RESPONSE']._serialized_start=215
+  _globals['_RESPONSE']._serialized_end=259
+  _globals['_COMMUNICATIONCONFIGURATION']._serialized_start=261
+  _globals['_COMMUNICATIONCONFIGURATION']._serialized_end=341
+  _globals['_SENSORSERVICE']._serialized_start=344
+  _globals['_SENSORSERVICE']._serialized_end=484
 # @@protoc_insertion_point(module_scope)

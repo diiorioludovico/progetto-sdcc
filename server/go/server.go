@@ -8,6 +8,7 @@ import (
 	"net"
 	"progetto/server/go/menu"
 	pb "progetto/server/go/proto"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -18,12 +19,11 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// server is used to implement helloworld.GreeterServer
 type server struct {
 	pb.UnimplementedSensorServiceServer
+	db *sql.DB
 }
 
-// SayHello implements helloworld.GreeterServer
 func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response, error) {
 	fmt.Println("Ricevuti dati dal sensore: ", in)
 
@@ -35,14 +35,44 @@ func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response,
 	return response, nil
 }
 
+func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification) (*pb.CommunicationConfiguration, error) {
+	//fmt.Println("Ricevuto primo feedback dal sensore ", in.SerialNumber)
+	rows, err := s.db.Query("SELECT * FROM sensors WHERE serial_number = ?", in.SerialNumber)
+	if err != nil {
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	var sensor menu.Sensor
+	var count int
+
+	for rows.Next() {
+		if err := rows.Scan(&sensor.Id, &sensor.Is_active, &sensor.Park_id, &sensor.Serial_number); err != nil {
+			fmt.Println("ERROR: scan error: ", err)
+		}
+		count += 1
+	}
+
+	var response *pb.CommunicationConfiguration
+
+	if err := rows.Err(); err != nil {
+		fmt.Println("ERROR: rows error: ", err)
+	} else if count > 0 {
+		response = &pb.CommunicationConfiguration{
+			DeviceID: strconv.Itoa(sensor.Id),
+			ParkID:   strconv.FormatInt(sensor.Park_id.Int64, 10),
+			Interval: 10,
+		}
+	}
+
+	return response, nil
+
+}
+
 func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		fmt.Println("ERROR: failed to listen: ", err)
 	}
-
-	s := grpc.NewServer()
-	pb.RegisterSensorServiceServer(s, &server{})
 
 	conn := "root:root@tcp(localhost:3306)/edgedb"
 	db, err := sql.Open("mysql", conn)
@@ -50,6 +80,9 @@ func main() {
 		fmt.Println("ERROR: problem in opening db connection: ", err)
 	}
 	defer db.Close()
+
+	s := grpc.NewServer()
+	pb.RegisterSensorServiceServer(s, &server{db: db})
 
 	//verifica della connessione
 	if err := db.Ping(); err != nil {

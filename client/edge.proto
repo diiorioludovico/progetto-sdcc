@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package edge;
 
-option go_package = "progetto/server/go/proto;proto";
+option go_package = "progetto-sdcc/server/go/proto;proto";
 
 message SensorData {
     string deviceID = 1;
@@ -14,11 +14,22 @@ message SensorData {
     string timestamp = 7;
 }
 
+message SensorIdentification {
+  string serial_number = 1;
+}
+
 message Response {
     string message = 1;
     bool success = 2;
 }
 
+message CommunicationConfiguration {
+  string deviceID = 1;
+  string parkID = 2;
+  float interval = 3;
+}
+
 service SensorService {
   rpc SendData(SensorData) returns (Response);
+  rpc Configuration(SensorIdentification) returns (CommunicationConfiguration);
 }

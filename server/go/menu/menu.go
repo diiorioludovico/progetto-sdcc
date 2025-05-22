@@ -12,10 +12,10 @@ import (
 )
 
 type Sensor struct {
-	id            int
-	is_active     bool
-	park_id       sql.NullInt64
-	serial_number string
+	Id            int
+	Is_active     bool
+	Park_id       sql.NullInt64
+	Serial_number string
 }
 
 type Park struct {
@@ -97,7 +97,7 @@ func showSensors(db *sql.DB) {
 
 	for rows.Next() {
 		var sen Sensor
-		if err := rows.Scan(&sen.id, &sen.is_active, &sen.park_id, &sen.serial_number); err != nil {
+		if err := rows.Scan(&sen.Id, &sen.Is_active, &sen.Park_id, &sen.Serial_number); err != nil {
 			fmt.Println("ERROR: scan error: ", err)
 		}
 
@@ -121,8 +121,6 @@ func showParks(db *sql.DB) {
 	rows, err := db.Query("SELECT * FROM parks")
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
-	} else {
-		fmt.Println("Numero di recod recuperati: ")
 	}
 
 	var count int
@@ -211,7 +209,7 @@ func sensorTable(sensors []Sensor) {
 	fmt.Fprintln(writer, "--\t----\t-----\t-----")
 
 	for _, s := range sensors {
-		fmt.Fprintf(writer, "%d\t%t\t%d\t%s\n", s.id, s.is_active, s.park_id.Int64, s.serial_number)
+		fmt.Fprintf(writer, "%d\t%t\t%d\t%s\n", s.Id, s.Is_active, s.Park_id.Int64, s.Serial_number)
 	}
 
 	writer.Flush()

@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SensorService_SendData_FullMethodName = "/edge.SensorService/SendData"
+	SensorService_SendData_FullMethodName      = "/edge.SensorService/SendData"
+	SensorService_Configuration_FullMethodName = "/edge.SensorService/Configuration"
 )
 
 // SensorServiceClient is the client API for SensorService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SensorServiceClient interface {
 	SendData(ctx context.Context, in *SensorData, opts ...grpc.CallOption) (*Response, error)
+	Configuration(ctx context.Context, in *SensorIdentification, opts ...grpc.CallOption) (*CommunicationConfiguration, error)
 }
 
 type sensorServiceClient struct {
@@ -47,11 +49,22 @@ func (c *sensorServiceClient) SendData(ctx context.Context, in *SensorData, opts
 	return out, nil
 }
 
+func (c *sensorServiceClient) Configuration(ctx context.Context, in *SensorIdentification, opts ...grpc.CallOption) (*CommunicationConfiguration, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CommunicationConfiguration)
+	err := c.cc.Invoke(ctx, SensorService_Configuration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SensorServiceServer is the server API for SensorService service.
 // All implementations must embed UnimplementedSensorServiceServer
 // for forward compatibility.
 type SensorServiceServer interface {
 	SendData(context.Context, *SensorData) (*Response, error)
+	Configuration(context.Context, *SensorIdentification) (*CommunicationConfiguration, error)
 	mustEmbedUnimplementedSensorServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedSensorServiceServer struct{}
 
 func (UnimplementedSensorServiceServer) SendData(context.Context, *SensorData) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendData not implemented")
+}
+func (UnimplementedSensorServiceServer) Configuration(context.Context, *SensorIdentification) (*CommunicationConfiguration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configuration not implemented")
 }
 func (UnimplementedSensorServiceServer) mustEmbedUnimplementedSensorServiceServer() {}
 func (UnimplementedSensorServiceServer) testEmbeddedByValue()                       {}
@@ -104,6 +120,24 @@ func _SensorService_SendData_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SensorService_Configuration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SensorIdentification)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SensorServiceServer).Configuration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SensorService_Configuration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SensorServiceServer).Configuration(ctx, req.(*SensorIdentification))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SensorService_ServiceDesc is the grpc.ServiceDesc for SensorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var SensorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendData",
 			Handler:    _SensorService_SendData_Handler,
+		},
+		{
+			MethodName: "Configuration",
+			Handler:    _SensorService_Configuration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

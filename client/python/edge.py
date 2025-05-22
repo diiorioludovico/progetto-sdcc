@@ -10,12 +10,43 @@ import traceback
 
 class ParkSensor:
 
-    def __init__(self, server, deviceID, parkID, interval):
+    def __init__(self, server, serial_number):
         self.server = server
-        self.deviceID = deviceID
-        self.parkID = parkID
-        self.interval = interval
+        self.serial_number = serial_number
         print("INFO: Sensor initialization")
+
+        #initialization comunication with server
+        result = self.init()
+
+        self.deviceID = result.deviceID
+        self.parkID = result.parkID
+        self.interval = result.interval
+    
+    def init(self):
+        try:
+            #channel and stub creation
+            with grpc.insecure_channel(self.server) as channel:
+                stub = edge_pb2_grpc.SensorServiceStub(channel)
+
+                #impacchettamento dei dati
+                data = edge_pb2.SensorIdentification(
+                    serial_number = self.serial_number
+                )
+
+                result = stub.Configuration(data)
+                print("INFO: initialization completed")
+    
+                return result
+        except grpc.RpcError as e:
+            print("ERROR: gRPC error: " + str(e))
+            traceback.print_exc()
+            exit(0)
+        except Exception as e:
+            print("ERROR: comunication error: " + str(e))
+            traceback.print_exc()
+            exit(0)
+    
+
 
     def getHourAndMonth(self, timestamp):
         #"2025-05-17T15:33:56.3260074+00:00"
@@ -135,12 +166,10 @@ def main():
         config = json.load(f)
     
     server = config.get("server")
-    deviceID = config.get("deviceID")
-    parkID = config.get("parkID")
-    interval = config.get("interval")
+    serial_number = config.get("serial_number")
 
     #istanza del collector
-    sensor = ParkSensor(server, deviceID, parkID, interval)
+    sensor = ParkSensor(server, serial_number)
     sensor.execute()
 
 
