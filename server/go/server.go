@@ -25,7 +25,7 @@ type server struct {
 }
 
 func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response, error) {
-	fmt.Println("Ricevuti dati dal sensore: ", in)
+	//fmt.Println("Ricevuti dati dal sensore: ", in)
 
 	response := &pb.Response{
 		Message: "dati ricevuti correttamente",
@@ -37,6 +37,8 @@ func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response,
 
 func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification) (*pb.CommunicationConfiguration, error) {
 	//fmt.Println("Ricevuto primo feedback dal sensore ", in.SerialNumber)
+
+	//recupero del record associato al sensore e preparazione dellla response
 	rows, err := s.db.Query("SELECT * FROM sensors WHERE serial_number = ?", in.SerialNumber)
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
@@ -56,16 +58,29 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 
 	if err := rows.Err(); err != nil {
 		fmt.Println("ERROR: rows error: ", err)
-	} else if count > 0 {
-		response = &pb.CommunicationConfiguration{
-			DeviceID: strconv.Itoa(sensor.Id),
-			ParkID:   strconv.FormatInt(sensor.Park_id.Int64, 10),
-			Interval: 10,
-		}
+	} else if count == 0 {
+		fmt.Println("INFO: no record found")
+		return response, nil
+	}
+
+	response = &pb.CommunicationConfiguration{
+		DeviceID: strconv.Itoa(sensor.Id),
+		ParkID:   strconv.FormatInt(sensor.Park_id.Int64, 10),
+		Interval: 10,
+	}
+
+	//modifica del valore is_active del sensore per indicare che è attivo nel parco e può iniziare ad inviare dati
+	res, err := s.db.Exec("UPDATE sensors SET is_active = ? WHERE id = ?", true, sensor.Id)
+	if err != nil {
+		fmt.Println("ERROR: update error: ", err)
+	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		fmt.Println("ERROR: rows affected error: ", err)
 	}
 
 	return response, nil
-
 }
 
 func main() {
