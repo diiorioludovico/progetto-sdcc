@@ -183,10 +183,25 @@ func addPark(db *sql.DB, reader *bufio.Reader) {
 func removeSensor(db *sql.DB, reader *bufio.Reader) {
 	//fmt.Println("\nremoveSensor")
 	fmt.Print("\nInsert sensor id to delete: ")
-	id, _ := reader.ReadString('\n')
-	id = strings.TrimSpace(id)
+	sensor_id, _ := reader.ReadString('\n')
+	sensor_id = strings.TrimSpace(sensor_id)
 
-	_, err := db.Exec("DELETE FROM sensors WHERE id = ?", id)
+	//verifichiamo se il sensore che si vuole rimuovere è operativo su qualche parco
+	var park_id sql.NullInt64
+	err := db.QueryRow("SELECT park_id FROM sensors WHERE id = ?", sensor_id).Scan(&park_id)
+	if err != nil {
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	if park_id.Valid {
+		//park_id != NULL -> modifica del valore is_observed del parco con id = park_id
+		_, err := db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", false, park_id)
+		if err != nil {
+			fmt.Println("ERROR: park update error: ", err)
+		}
+	}
+
+	_, err = db.Exec("DELETE FROM sensors WHERE id = ?", sensor_id)
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new park: ", err)
 	}
