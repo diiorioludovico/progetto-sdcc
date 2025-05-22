@@ -51,6 +51,10 @@ func ShowMenu(db *sql.DB) {
 			removeSensor(db, reader)
 		case "6":
 			removePark(db, reader)
+		case "7":
+			associateSensor(db, reader)
+		case "8":
+			deassociateSensor(db, reader)
 		default:
 			fmt.Println("\nInvalid option. Try Again.")
 		}
@@ -82,6 +86,9 @@ func printMenu() {
 	fmt.Println("4) Add park")
 	fmt.Println("5) Remove sensor")
 	fmt.Println("6) Remove park")
+	fmt.Println("7) Associate sensor to park")
+	fmt.Println("8) Disassociate sensor from park")
+
 }
 
 func showSensors(db *sql.DB) {
@@ -195,6 +202,55 @@ func removePark(db *sql.DB, reader *bufio.Reader) {
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new park: ", err)
 	}
+}
+
+func associateSensor(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\nremovePark")
+	fmt.Print("\nInsert park id: ")
+	park_id, _ := reader.ReadString('\n')
+	park_id = strings.TrimSpace(park_id)
+
+	fmt.Print("\nInsert sensor id: ")
+	sensor_id, _ := reader.ReadString('\n')
+	sensor_id = strings.TrimSpace(sensor_id)
+
+	//modifica del valore is_observed del parco per indicare che è stato posto un sensore e che tra poco sarà attivato
+	_, err := db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", true, park_id)
+	if err != nil {
+		fmt.Println("ERROR: park update error: ", err)
+	}
+
+	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
+	_, err = db.Exec("UPDATE sensors SET park_id = ? WHERE id = ?", park_id, sensor_id)
+	if err != nil {
+		fmt.Println("ERROR: sensor update error: ", err)
+	}
+}
+
+func deassociateSensor(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\nremovePark")
+	fmt.Print("\nInsert sensor id: ")
+	sensor_id, _ := reader.ReadString('\n')
+	sensor_id = strings.TrimSpace(sensor_id)
+
+	var park_id int
+	err := db.QueryRow("SELECT park_id FROM sensors WHERE id = ?", sensor_id).Scan(&park_id)
+	if err != nil {
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	//modifica del valore is_observed del parco per indicare che non è più osservato
+	_, err = db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", false, park_id)
+	if err != nil {
+		fmt.Println("ERROR: park update error: ", err)
+	}
+
+	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
+	_, err = db.Exec("UPDATE sensors SET park_id = ?, is_active = ? WHERE id = ?", nil, false, sensor_id)
+	if err != nil {
+		fmt.Println("ERROR: sensor update error: ", err)
+	}
+
 }
 
 func waitForEnter(reader *bufio.Reader) {
