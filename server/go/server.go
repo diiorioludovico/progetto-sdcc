@@ -26,6 +26,10 @@ type server struct {
 
 func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response, error) {
 	//fmt.Println("Ricevuti dati dal sensore: ", in)
+	_, err := s.db.Exec("INSERT INTO measures(sensor_id, park_id, temperature, humidity, brightness, air_quality, timestamp) VALUES(?, ?, ?, ?, ?, ?, ?)", in.DeviceID, in.ParkID, in.Temperature, in.Humidity, in.Brightness, in.AirQuality, in.Timestamp)
+	if err != nil {
+		fmt.Println("ERROR: error in inserting new measure: ", err)
+	}
 
 	response := &pb.Response{
 		Message: "dati ricevuti correttamente",
