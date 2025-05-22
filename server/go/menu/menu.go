@@ -46,11 +46,11 @@ func ShowMenu(db *sql.DB) {
 		case "3":
 			addSensor(db, reader)
 		case "4":
-			addPark(db)
+			addPark(db, reader)
 		case "5":
-			removeSensor(db)
+			removeSensor(db, reader)
 		case "6":
-			removePark(db)
+			removePark(db, reader)
 		default:
 			fmt.Println("\nInvalid option. Try Again.")
 		}
@@ -159,16 +159,44 @@ func addSensor(db *sql.DB, reader *bufio.Reader) {
 	}
 }
 
-func addPark(db *sql.DB) {
-	fmt.Println("\naddPark")
+func addPark(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\naddPark")
+	fmt.Print("\nInsert park location: ")
+	location, _ := reader.ReadString('\n')
+	location = strings.TrimSpace(location)
+
+	fmt.Print("\nInsert park name: ")
+	name, _ := reader.ReadString('\n')
+	name = strings.TrimSpace(name)
+
+	_, err := db.Exec("INSERT INTO parks(location, name) VALUES(?, ?)", location, name)
+	if err != nil {
+		fmt.Println("ERROR: error in inserting new park: ", err)
+	}
 }
 
-func removeSensor(db *sql.DB) {
-	fmt.Println("\nremoveSensor")
+func removeSensor(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\nremoveSensor")
+	fmt.Print("\nInsert sensor id to delete: ")
+	id, _ := reader.ReadString('\n')
+	id = strings.TrimSpace(id)
+
+	_, err := db.Exec("DELETE FROM sensors WHERE id = ?", id)
+	if err != nil {
+		fmt.Println("ERROR: error in inserting new park: ", err)
+	}
 }
 
-func removePark(db *sql.DB) {
-	fmt.Println("\nremovePark")
+func removePark(db *sql.DB, reader *bufio.Reader) {
+	//fmt.Println("\nremovePark")
+	fmt.Print("\nInsert park id to delete: ")
+	id, _ := reader.ReadString('\n')
+	id = strings.TrimSpace(id)
+
+	_, err := db.Exec("DELETE FROM parks WHERE id = ?", id)
+	if err != nil {
+		fmt.Println("ERROR: error in inserting new park: ", err)
+	}
 }
 
 func waitForEnter(reader *bufio.Reader) {
