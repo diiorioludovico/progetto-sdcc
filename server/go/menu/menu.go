@@ -100,6 +100,8 @@ func showSensors(db *sql.DB) {
 		fmt.Println("ERROR: query error: ", err)
 	}
 
+	defer rows.Close()
+
 	var count int
 
 	for rows.Next() {
@@ -129,6 +131,8 @@ func showParks(db *sql.DB) {
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
+
+	defer rows.Close()
 
 	var count int
 
@@ -210,12 +214,26 @@ func removeSensor(db *sql.DB, reader *bufio.Reader) {
 func removePark(db *sql.DB, reader *bufio.Reader) {
 	//fmt.Println("\nremovePark")
 	fmt.Print("\nInsert park id to delete: ")
-	id, _ := reader.ReadString('\n')
-	id = strings.TrimSpace(id)
+	park_id, _ := reader.ReadString('\n')
+	park_id = strings.TrimSpace(park_id)
 
-	_, err := db.Exec("DELETE FROM parks WHERE id = ?", id)
+	//verificare se il parco è osservato
+	var is_observed bool
+	var sensor_id sql.NullInt64
+	err := db.QueryRow("SELECT is_observed, sensors.id FROM parks LEFT JOIN sensors ON sensors.park_id = parks.id WHERE parks.id = ?", park_id).Scan(&is_observed, &sensor_id)
 	if err != nil {
-		fmt.Println("ERROR: error in inserting new park: ", err)
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	if is_observed {
+		//is_observed = true -> il parco ha un sensore attivo
+		fmt.Printf("\nDeassociate the sensor %d from the park before to remove the park\n", sensor_id.Int64)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM parks WHERE id = ?", park_id)
+	if err != nil {
+		fmt.Println("ERROR: error in deleting a park: ", err)
 	}
 }
 
