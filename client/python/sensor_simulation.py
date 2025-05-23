@@ -6,6 +6,8 @@
 #   - 3: 17.01-22.00
 #   - 4: 22.01-4.00
 
+import random
+
 temperature_matrix = [[4, 6, 8.0, 10, 4], 
                       [4, 6, 8.5, 11, 5], 
                       [5, 7, 10.0, 13, 6], 
@@ -55,8 +57,8 @@ def getTemperature(month, hour):
     Function to get the temperature for a given month and hour.
     The temperature is calculated based on a predefined matrix.
     """
-
-    return float(temperature_matrix[month][hour])
+    temperature = float(temperature_matrix[month][hour]) + round(random.uniform(-1, 1), 1)
+    return None if random.random() < 0.01 else temperature
 
 #@param month: The month of the year (0-11)
 def getHumidity(month):
@@ -64,16 +66,18 @@ def getHumidity(month):
     Function to get the humidity for a given month and hour.
     The humidity is calculated based on a predefined matrix.
     """
-    return float(humidity_vector[month])
+    humidity = float(humidity_vector[month]) + round(random.uniform(-2, 2), 1)
+    return None if random.random() < 0.01 else humidity
 
 #@param month: The month of the year (0-11)
-#@param hour: The hour of the day (0-4) 
+#@param hour: The hour of the day (0-4)
 def getBrightness(month, hour):
     """
     Function to get the brightness for a given hour.
     The brightness is calculated based on a predefined matrix.
     """
-    return float(brightness_matrix[month][hour])
+    brightness = float(brightness_matrix[month][hour]) + round(random.uniform(-20, 20), 1)
+    return None if random.random() < 0.01 else brightness
 
 
 #@param month: The month of the year (0-11)
@@ -83,4 +87,5 @@ def getAirQuality(month, hour):
     Function to get the air quality for a given month and hour.
     The air quality is calculated based on a predefined matrix.
     """
-    return float(pm10_matrix[month][hour])
+    air_quality = float(pm10_matrix[month][hour]) + round(random.uniform(-5, 5), 1)
+    return None if random.random() < 0.01 else air_quality

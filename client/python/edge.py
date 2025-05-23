@@ -1,12 +1,16 @@
 import grpc
 import sensor_simulation
 import json
-import random
 import datetime
 import time
 import edge_pb2
 import edge_pb2_grpc
 import traceback
+
+thresholds = {"temperature": 0.5,
+              "humidity": 2,
+              "brightness": 20,
+              "air_quality": 5}
 
 class ParkSensor:
 
@@ -21,6 +25,8 @@ class ParkSensor:
         self.deviceID = result.deviceID
         self.parkID = result.parkID
         self.interval = result.interval
+
+        self.last_sent_data = None
     
     def init(self):
         try:
@@ -74,12 +80,12 @@ class ParkSensor:
         hour, month = self.getHourAndMonth(timestamp)
 
         # per ogni metrica, con probabilità dell'1% non viene generato il valore
-        temperature = None if random.random() < 0.01 else sensor_simulation.getTemperature(month, hour)
-        humidity = None if random.random() < 0.01 else sensor_simulation.getHumidity(month)
-        brightness = None if random.random() < 0.01 else sensor_simulation.getBrightness(month, hour)
-        air_quality = None if random.random() < 0.01 else sensor_simulation.getAirQuality(month, hour)                                                             
+        temperature = sensor_simulation.getTemperature(month, hour)
+        humidity = sensor_simulation.getHumidity(month)
+        brightness = sensor_simulation.getBrightness(month, hour)
+        air_quality = sensor_simulation.getAirQuality(month, hour)                                                             
 
-        print("INFO: Data successfully recorder")
+        print("INFO: Data successfully recordered")
 
         return {
             "deviceID": self.deviceID,
@@ -97,7 +103,16 @@ class ParkSensor:
             if valore == None:
                 return False
         
-        return True
+        if self.last_sent_data is None:
+            #i dati non sono stati mai inviati, quindi se sono validi procediamo con l'invio
+            return True
+        
+        #i dati non già stati inviati almeno una volta, quindi dobbiamo verificare se vale la pena inviarli
+        for key, threshold in thresholds.items():
+            if abs(data[key] - self.last_sent_data[key]) > threshold:
+                return True
+
+        return False
     
     def sendData(self, raw_data):
         try:
@@ -148,6 +163,9 @@ class ParkSensor:
                 #3) invia i dati
                 if isValid:
                     self.sendData(data)
+                    self.last_sent_data = data
+                else: 
+                    print("INFO: Invalid data, they will not be sent")
 
                 #4) attesa di {interval} secondi prima di riminciare il ciclo
                 print("INFO: sleeping " + str(self.interval) + " seconds until next collection")
