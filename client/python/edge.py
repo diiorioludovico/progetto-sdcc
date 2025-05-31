@@ -7,6 +7,8 @@ import edge_pb2
 import edge_pb2_grpc
 import traceback
 
+import os
+
 thresholds = {"temperature": 0.5,
               "humidity": 2,
               "brightness": 20,
@@ -177,10 +179,10 @@ class ParkSensor:
                 exit(0)
 
 def main():
-    print("INFO: Starting edge device")
+    print("INFO: Starting edge device: " + os.getcwd())
 
     # Apri e leggi il file JSON
-    with open("config.json", "r") as f:
+    with open("client/config.json", "r") as f:
         config = json.load(f)
     
     server = config.get("server")

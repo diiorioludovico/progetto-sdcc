@@ -1,0 +1,152 @@
+connettersi all'istanza ec2
+ssh -i edgesKeys.pem ec2-user@34.224.67.104
+ssh -i ParkServerKeys.pem ec2-user@44.203.160.19
+
+////////////////DOCKER COMMAND////////////////
+INSTALLARE E AVVIARE DOCKER
+sudo yuml install docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+AVVIO AUTOMATICO DI DOCKER
+sudo systemctl enable docker
+
+AVVIO DEMONE DOCKER
+sudo systemctl start docker
+
+CREAZIONE IMMAGINE
+sudo docker build -t <image name> -f <Dockerfile> .
+
+AVVIO CONTAINER
+sudo docker run --name <container name> -d -i -t -p <host port>:<container port> <image name>
+
+si può far sì che all'interno del container ci siano configurazioni personalizzate e che si usino file che sono sul sistema host
+
+p.e.
+sudo docker run -d -p 80:80 --name nginx \
+-v /home/ec2-user/frontend/nginx/default.conf:/etc/nginx/conf.d/default.conf \
+-v /home/ec2-user/frontend/public:/usr/share/nginx/html \
+nginx
+
+ACCESSO CLI DEL CONTAINER
+sudo docker exec -it <container name> bash
+
+
+
+///////////SETUP MINIKUBE////////////////////
+INSTALLARE MINIKUBE
+curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+
+ATTENZIONE: farlo in una directory dove si hanno i permessi di scrittura
+
+INSTALLARE KUBECTL
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+
+AVVIARE CLUSTE MINIKUBE 
+minikube start --driver=docker
+
+1) docker deve essere avviato
+2) se esce PROVIDER_DOCKER_NEWGRP fai questo:
+	-sudo usermod -aG docker $USER
+	-newgrp docker
+
+
+/////////////////BASIC KUBECTL COMMANDS////////////////////
+Comandi per creare e fare debug in un minikube cluster
+
+STATO DEL CLUSTER
+'kubectl get nodes' oppure 'minikube status'
+
+MOSTRARE PODS
+kubectl get pod
+
+MOSTRARE SERVIZI
+kubectl get services
+
+MOSTRARE DEPLOYMENT
+kubectl get deployment
+
+MOSTRARE REPLICHE
+kubectl get replicaset
+
+N.B. ReplicaSet gestisce le repliche di un pod
+
+COMANDO PER CREARE I COMPONENTI: kubectl create ...
+
+CREAZIONE DEPLOYMENT:  
+kubectl create deployment <deployment name> --image=<image> [--dry-run] [options]
+-<image>: immagine per il pod
+
+es: kubectl create deployment nginx_depl --image=nginx
+
+MODIFICA DELL'IMMAGINE NEI POD: si può modificare il file di configurazione auto-generato
+kubectl edit deployment <deployment name>
+
+CONTROLLARE I LOG ASSOCIATI AI POD: mostra l'app in esecuzione nel pod
+kubectl logs <pod name>
+-<pod name>: si recuperera col comando 'kubectl get pod'
+
+MOSTRARE ULTERIORI INFORMAZIONI ADDIZIONALI SUL POD
+kubectl describe pod <pod name>
+
+OTTENERE IL PROMPT DEI COMANDI DEL CONTAINER DENTRO UN POD
+kubectl exec -it <pod name> -- bin/bash
+
+ELIMINARE UN DEPLOYMENT: sono rimosse anche le repliche
+kubectl delete deployment <deployment name>
+
+MODIFICA DEL FILE DI CONFIGURAZIONE: quando si crea il deployment non si specificano tutte le configurazione, ma bensì al massimo un paio e poi si possono applicare delle modifiche al file di configurazione. Kubernetes con quest'operazione permette di modificare il config file ed applica quello che c'è scritto al suo interno
+
+kubectl apply - f <file name>
+-<file name>: file di configurazione in formato .yaml
+
+I file di configurazione vanno generati per i vari componenti del cluster, quindi i deployment, i service, ecc..
+
+Per verificare che le richieste vengano inoltrate correttamente ai pod, bisogna verificare che gli endpoints associatogli coincidano con quelli effettivi:
+1. Con il comando 'kubectl describe service <service name> verificare i valori degli 'Endpoints'
+2. Confrontare gli indirizzi IP dei pod con il comando 'kubectl get pod -o wide'
+
+CONTROLLIAMO L'ULTIMA CONFIGURAZIONE DEL FILE .yaml
+kubectl get deployment <deployment name> -o yaml
+
+Qui potremo verificare la sezione status
+
+ASSEGNAZIONE INDIRIZZO IP ESTERNO: comando per assegnare all'external service un ip pubblico
+minikube service <service name>
+
+/////////////////NAMESPACE/////////////////
+
+MOSTRARE I NAMESPACES:
+kubectl get namespace
+
+Si possono mostrare le informazioni contenute dentro il namespace kube-public
+kubectl cluster-info
+
+CREARE UN NAMESPACE:
+kubectl create namespace <namespace name>
+
+COMPONENTI CHE NON POSSONO ESSERE MESSI DENTRO NAMESPACE:
+kubectl api-resources --namespaced=false
+
+con true puoi vedere quelle che invece possono essere messe dentro
+
+CREAZIONE COMPONENTE IN UN NUOVO NAMESPACE:
+kubectl apply -f <file name> --namespace=<namespace name>
+
+MOSTRARE I COMPONENTI DI UNO SPECIFICO NAMESPACE: è preferibile nel config file, piuttosto che da cmd
+kubectl get all -n <namespace name
+
+///////INGRESS///////////////
+
+ABILITARE INGRESS CONTROLLER: configura automaticamente k8s Nginx ingress controller
+minikube addons enable ingress
+
+INGRESS DEFAULT BACKEND: 
+kubectl descrine <ingress name> -n <namespace name>
+Con questo comando vengono mostrate varie informazioni tra cui 'Default backend: default-http-backend:80'. Ogni richiesta inoltrata nel cluster che non è mappata a nessun backend viene gestita da questo backend. Quello che si fa è di creare un interal Service chiamato 'default-http-backend', con porta 80
+
+
+
