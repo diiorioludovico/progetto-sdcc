@@ -70,7 +70,7 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	response = &pb.CommunicationConfiguration{
 		DeviceID: strconv.Itoa(sensor.Id),
 		ParkID:   strconv.FormatInt(sensor.Park_id.Int64, 10),
-		Interval: 60,
+		Interval: 10,
 	}
 
 	//modifica del valore is_active del sensore per indicare che è attivo nel parco e può iniziare ad inviare dati
@@ -111,7 +111,7 @@ func main() {
 	}
 
 	//goroutine per il menu
-	go menu.ShowMenu(db)
+	//go menu.ShowMenu(db)
 
 	//goroutine per mostrare servizio per backend
 	go fejs.StartFrontendSetup(db)

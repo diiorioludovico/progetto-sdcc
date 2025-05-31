@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LudoParks</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="sidebar" id="sidebar"style="text-align: center;">
@@ -25,6 +26,14 @@
       <div id="component-list" class="component-list">
         <!-- Qui compariranno i componenti -->
       </div>
+
+      <div id="metric-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <h3 id="chart-title">Andamento metrica</h3>
+          <canvas id="metricChart"></canvas>
+        </div>
+      </div>
+
     </div>
 
     <div id="old-data-list" class="horizontal-footer">

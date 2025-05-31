@@ -29,7 +29,8 @@ const measures = [
   {label: "Air Quality", icon: "./assets/icons/air_quality_icon.png"}
 ];
 
-//var sensorData = null;
+let chartInstance = null;
+let park_id = null;
 
 rendering();
 document.getElementById("sidebar").classList.toggle("open");
@@ -42,6 +43,9 @@ function rendering() {
   getParksData();
   rendHome();
 }
+document.getElementById("metric-modal").addEventListener("click", () => {
+  document.getElementById("metric-modal").style.display = "none";
+});
 
 function getParksData() {
   fetch("http://localhost:8080/api/hello")
@@ -81,6 +85,7 @@ function rendSidebar(parks) {
       renderOldDataForPark(park.olddata);
       renderTimestamp(park.timestamp)
       
+      park_id = park.id;
       document.getElementById("description").innerHTML = "";
       //console.log("park.name")
     };
@@ -126,24 +131,28 @@ function renderComponentsForPark(park) {
   const divT = document.createElement("div");
   divT.className = "card";
   divT.innerHTML = `<div><img src="${measures[0].icon}"></div><div><strong>${measures[0].label}</strong></div><p></p><div>${getCelsius(park.temperature)}</div>`;
+  divT.onclick = () => {renderMetricChart(measures[0].label);};
   component_list.appendChild(divT)
 
   //Umidità
   const divH = document.createElement("div");
   divH.className = "card";
   divH.innerHTML = `<div><img src="${measures[1].icon}"></div><div><strong>${measures[1].label}</strong></div><p></p><div>${getPercentage(park.humidity)}</div>`;
+  divH.onclick = () => {renderMetricChart(measures[1].label);};
   component_list.appendChild(divH)
 
   //Luminosità
   const divB = document.createElement("div");
   divB.className = "card";
   divB.innerHTML = `<div><img src="${measures[2].icon}"></div><div><strong>${measures[2].label}</strong></div><p></p><div>${getLux(park.brightness)}</div>`;
+  divB.onclick = () => {renderMetricChart(measures[2].label);};
   component_list.appendChild(divB)
 
   //Umidità
   const divAQ = document.createElement("div");
   divAQ.className = "card";
   divAQ.innerHTML = `<div><img src="${measures[3].icon}"></div><div><strong>${measures[3].label}</strong></div><p></p><div>${getPMI(park.airquality)}</div>`;
+  divAQ.onclick = () => {renderMetricChart(measures[3].label);};
   component_list.appendChild(divAQ)
 }
 
@@ -193,4 +202,67 @@ function getIcon(icon) {
 
 function renderTimestamp(timestamp) {
   document.getElementById("last-update").innerHTML = "last update: " + timestamp;
+}
+
+async function renderMetricChart(metricName) {
+  const modal = document.getElementById("metric-modal");
+  const title = document.getElementById("chart-title");
+  const canvas = document.getElementById("metricChart");
+
+  console.log(park_id);
+  
+  try{
+
+    const apiData = await getMetricData(metricName);
+    console.log(apiData)
+
+    modal.style.display = "flex";
+    title.textContent = `${metricName}`;
+
+    const hours = apiData.metrics.map(metric => metric.hour);
+    const values = apiData.metrics.map(metric => parseFloat(metric.value));
+
+    const data = {
+      labels: hours,
+      datasets: [{
+        label: metricName,
+        data: values,
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.3
+      }]
+    };
+
+    const config = {
+      type: 'line',
+      data: data,
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: false }
+        }
+      }
+    };
+
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(canvas, config);
+  } catch (error) {
+    console.log("Errore nel caricameneto dei dati: ", error)
+  }
+}
+
+function getMetricData(metricName) {
+  return fetch(`http://localhost:8080/api/getData?id=${park_id}&metric=${metricName}`)
+    .then(response => {
+      if (!response.ok) {
+        // Controlla se la risposta HTTP è andata a buon fine (status 200-299)
+        throw new Error(`Errore HTTP! Status: ${response.status}`);
+      }
+      return response.json()})
+    .then(data => {
+      //console.log(data)
+      return data;
+    }).catch(err => {
+      console.log(err.text);
+      throw err;
+    });
 }

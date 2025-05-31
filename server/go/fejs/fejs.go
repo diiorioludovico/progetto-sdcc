@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
+// API Response hello
 type JSMessage struct {
 	Parks []Park `json:"parks"`
 }
@@ -30,7 +32,68 @@ type ParksOldData struct {
 	Max  string `json:"max"`
 }
 
+// API Response getData
+type MetricResp struct {
+	Metrics []Metric `json:"metrics"`
+}
+
+type Metric struct {
+	Hour  string `json:"hour"`
+	Value string `json:"value"`
+}
+
 var dbsql *sql.DB
+
+func getMetricData(w http.ResponseWriter, r *http.Request) {
+	enableCors(w)
+	w.Header().Set("Content-Type", "application/json")
+	mx := getData(r)
+	json.NewEncoder(w).Encode(mx)
+}
+
+func getData(r *http.Request) MetricResp {
+	park_id := r.URL.Query().Get("id")
+	metric := r.URL.Query().Get("metric")
+
+	//lavorazione stringa metrica
+	metric = strings.ToLower(metric)
+	metric = strings.ReplaceAll(metric, " ", "_")
+
+	fmt.Println(park_id)
+	fmt.Println(metric)
+
+	query := fmt.Sprintf(`
+        SELECT
+            DATE_FORMAT(timestamp, '%%H:00') AS ora, 
+            AVG(%s) AS valore
+        FROM 
+            measures
+        WHERE 
+            park_id = ? AND DATE(timestamp) = CURDATE()
+        GROUP BY 
+            HOUR(timestamp)
+        ORDER BY 
+            HOUR(timestamp)`, metric)
+
+	rows, err := dbsql.Query(query, park_id)
+	if err != nil {
+		fmt.Println("ERROR: query error: ", err)
+	}
+
+	defer rows.Close()
+
+	var data MetricResp
+
+	for rows.Next() {
+		var metric Metric
+		if err := rows.Scan(&metric.Hour, &metric.Value); err != nil {
+			fmt.Println("ERROR: scan error: ", err)
+		}
+
+		data.Metrics = append(data.Metrics, metric)
+	}
+	return data
+}
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 	enableCors(w)
@@ -137,5 +200,6 @@ func enableCors(w http.ResponseWriter) {
 func StartFrontendSetup(db *sql.DB) {
 	dbsql = db
 	http.HandleFunc("/api/hello", helloHandler)
+	http.HandleFunc("/api/getData", getMetricData)
 	http.ListenAndServe(":8080", nil)
 }
