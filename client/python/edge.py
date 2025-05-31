@@ -1,5 +1,4 @@
 import grpc
-import sensor_simulation
 import advancedSensorSimulator
 import json
 import datetime
