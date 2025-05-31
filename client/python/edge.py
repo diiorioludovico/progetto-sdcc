@@ -1,5 +1,6 @@
 import grpc
 import sensor_simulation
+import advancedSensorSimulator
 import json
 import datetime
 import time
@@ -79,13 +80,11 @@ class ParkSensor:
     def getData(self):
         timestamp = str(datetime.datetime.now())
 
-        hour, month = self.getHourAndMonth(timestamp)
-
-        # per ogni metrica, con probabilità dell'1% non viene generato il valore
-        temperature = sensor_simulation.getTemperature(month, hour)
-        humidity = sensor_simulation.getHumidity(month)
-        brightness = sensor_simulation.getBrightness(month, hour)
-        air_quality = sensor_simulation.getAirQuality(month, hour)                                                             
+        #per ogni metrica, con probabilità dell'1% non viene generato il valore
+        temperature = advancedSensorSimulator.get_temperature(timestamp)
+        humidity = advancedSensorSimulator.get_humidity(timestamp)
+        brightness = advancedSensorSimulator.get_brightness(timestamp)
+        air_quality = advancedSensorSimulator.get_air_quality(timestamp)                                                           
 
         print("INFO: Data successfully recordered")
 
