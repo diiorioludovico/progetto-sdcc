@@ -9,6 +9,7 @@ import (
 	"progetto/server/go/fejs"
 	"progetto/server/go/menu"
 	pb "progetto/server/go/proto"
+	qr "progetto/server/go/query"
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -26,7 +27,7 @@ type server struct {
 
 func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response, error) {
 	//fmt.Println("Ricevuti dati dal sensore: ", in)
-	_, err := s.db.Exec("INSERT INTO measures(sensor_id, park_id, temperature, humidity, brightness, air_quality, timestamp) VALUES(?, ?, ?, ?, ?, ?, ?)", in.DeviceID, in.ParkID, in.Temperature, in.Humidity, in.Brightness, in.AirQuality, in.Timestamp)
+	_, err := s.db.Exec(qr.GetMeasure(), in.DeviceID, in.ParkID, in.Temperature, in.Humidity, in.Brightness, in.AirQuality, in.Timestamp)
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new measure: ", err)
 	}
@@ -43,7 +44,7 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	//fmt.Println("Ricevuto primo feedback dal sensore ", in.SerialNumber)
 
 	//recupero del record associato al sensore e preparazione dellla response
-	rows, err := s.db.Query("SELECT * FROM sensors WHERE serial_number = ?", in.SerialNumber)
+	rows, err := s.db.Query(qr.GetSensor(), in.SerialNumber)
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
@@ -74,7 +75,7 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	}
 
 	//modifica del valore is_active del sensore per indicare che è attivo nel parco e può iniziare ad inviare dati
-	res, err := s.db.Exec("UPDATE sensors SET is_active = ? WHERE id = ?", true, sensor.Id)
+	res, err := s.db.Exec(qr.UpdateSensorStatus(), true, sensor.Id)
 	if err != nil {
 		fmt.Println("ERROR: update error: ", err)
 	}

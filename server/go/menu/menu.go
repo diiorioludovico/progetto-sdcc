@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	qr "progetto/server/go/query"
 	"runtime"
 	"strings"
 	"text/tabwriter"
@@ -95,7 +96,7 @@ func showSensors(db *sql.DB) {
 	//fmt.Println("\nshowSensors")
 	var sensors []Sensor
 
-	rows, err := db.Query("SELECT * FROM sensors")
+	rows, err := db.Query(qr.ShowSensors())
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
@@ -127,7 +128,7 @@ func showParks(db *sql.DB) {
 	//fmt.Println("\nshowParks")
 	var parks []Park
 
-	rows, err := db.Query("SELECT * FROM parks")
+	rows, err := db.Query(qr.ShowParks())
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
@@ -162,7 +163,7 @@ func addSensor(db *sql.DB, reader *bufio.Reader) {
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 
-	_, err := db.Exec("INSERT INTO sensors(serial_number) VALUES(?)", input)
+	_, err := db.Exec(qr.InsertSensor(), input)
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new sensor: ", err)
 	}
@@ -178,7 +179,7 @@ func addPark(db *sql.DB, reader *bufio.Reader) {
 	name, _ := reader.ReadString('\n')
 	name = strings.TrimSpace(name)
 
-	_, err := db.Exec("INSERT INTO parks(location, name) VALUES(?, ?)", location, name)
+	_, err := db.Exec(qr.InsertPark(), location, name)
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new park: ", err)
 	}
@@ -192,20 +193,20 @@ func removeSensor(db *sql.DB, reader *bufio.Reader) {
 
 	//verifichiamo se il sensore che si vuole rimuovere è operativo su qualche parco
 	var park_id sql.NullInt64
-	err := db.QueryRow("SELECT park_id FROM sensors WHERE id = ?", sensor_id).Scan(&park_id)
+	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
 
 	if park_id.Valid {
 		//park_id != NULL -> modifica del valore is_observed del parco con id = park_id
-		_, err := db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", false, park_id)
+		_, err := db.Exec(qr.UpdateParkStatus(), false, park_id)
 		if err != nil {
 			fmt.Println("ERROR: park update error: ", err)
 		}
 	}
 
-	_, err = db.Exec("DELETE FROM sensors WHERE id = ?", sensor_id)
+	_, err = db.Exec(qr.DeleteSensor(), sensor_id)
 	if err != nil {
 		fmt.Println("ERROR: error in inserting new park: ", err)
 	}
@@ -220,7 +221,7 @@ func removePark(db *sql.DB, reader *bufio.Reader) {
 	//verificare se il parco è osservato
 	var is_observed bool
 	var sensor_id sql.NullInt64
-	err := db.QueryRow("SELECT is_observed, sensors.id FROM parks LEFT JOIN sensors ON sensors.park_id = parks.id WHERE parks.id = ?", park_id).Scan(&is_observed, &sensor_id)
+	err := db.QueryRow(qr.GetParkStatus(), park_id).Scan(&is_observed, &sensor_id)
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
@@ -231,7 +232,7 @@ func removePark(db *sql.DB, reader *bufio.Reader) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM parks WHERE id = ?", park_id)
+	_, err = db.Exec(qr.DeletePark(), park_id)
 	if err != nil {
 		fmt.Println("ERROR: error in deleting a park: ", err)
 	}
@@ -248,13 +249,13 @@ func associateSensor(db *sql.DB, reader *bufio.Reader) {
 	sensor_id = strings.TrimSpace(sensor_id)
 
 	//modifica del valore is_observed del parco per indicare che è stato posto un sensore e che tra poco sarà attivato
-	_, err := db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", true, park_id)
+	_, err := db.Exec(qr.UpdateParkStatus(), true, park_id)
 	if err != nil {
 		fmt.Println("ERROR: park update error: ", err)
 	}
 
 	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
-	_, err = db.Exec("UPDATE sensors SET park_id = ? WHERE id = ?", park_id, sensor_id)
+	_, err = db.Exec(qr.UpdateSensorPark(), park_id, sensor_id)
 	if err != nil {
 		fmt.Println("ERROR: sensor update error: ", err)
 	}
@@ -267,19 +268,19 @@ func deassociateSensor(db *sql.DB, reader *bufio.Reader) {
 	sensor_id = strings.TrimSpace(sensor_id)
 
 	var park_id int
-	err := db.QueryRow("SELECT park_id FROM sensors WHERE id = ?", sensor_id).Scan(&park_id)
+	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
 	if err != nil {
 		fmt.Println("ERROR: query error: ", err)
 	}
 
 	//modifica del valore is_observed del parco per indicare che non è più osservato
-	_, err = db.Exec("UPDATE parks SET is_observed = ? WHERE id = ?", false, park_id)
+	_, err = db.Exec(qr.UpdateParkStatus(), false, park_id)
 	if err != nil {
 		fmt.Println("ERROR: park update error: ", err)
 	}
 
 	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
-	_, err = db.Exec("UPDATE sensors SET park_id = ?, is_active = ? WHERE id = ?", nil, false, sensor_id)
+	_, err = db.Exec(qr.UpdateSensorParkAndStatus(), nil, false, sensor_id)
 	if err != nil {
 		fmt.Println("ERROR: sensor update error: ", err)
 	}
