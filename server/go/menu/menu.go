@@ -188,60 +188,116 @@ func addPark(db *sql.DB, reader *bufio.Reader) {
 }
 
 func removeSensor(db *sql.DB, reader *bufio.Reader) {
-	//fmt.Println("\nremoveSensor")
 	fmt.Print("\nInsert sensor id to delete: ")
 	sensor_id, _ := reader.ReadString('\n')
 	sensor_id = strings.TrimSpace(sensor_id)
 
-	//verifichiamo se il sensore che si vuole rimuovere è operativo su qualche parco
-	var park_id sql.NullInt64
-	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
+	// Avvia una transazione
+	tx, err := db.Begin()
 	if err != nil {
-		logger.Error.Println("Query error: ", err)
+		logger.Error.Println("Transaction begin failed:", err)
+		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback()
+			logger.Error.Println("Recovered from panic, transaction rolled back:", r)
+		}
+	}()
+
+	// 1. Controlla se il sensore è associato a un parco
+	var park_id sql.NullInt64
+	err = tx.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
+	if err != nil {
+		_ = tx.Rollback()
+		logger.Error.Println("Query park_id failed, transaction rolled back:", err)
+		return
+	}
+
+	// 2. Se associato, aggiorna is_observed del parco
 	if park_id.Valid {
-		//park_id != NULL -> modifica del valore is_observed del parco con id = park_id
-		_, err := db.Exec(qr.UpdateParkStatus(), false, park_id)
+		_, err = tx.Exec(qr.UpdateParkStatus(), false, park_id.Int64)
 		if err != nil {
-			logger.Error.Println("Park update error: ", err)
+			_ = tx.Rollback()
+			logger.Error.Println("Park update error, transaction rolled back:", err)
+			return
 		}
 	}
 
-	_, err = db.Exec(qr.DeleteSensor(), sensor_id)
+	// 3. Elimina il sensore
+	_, err = tx.Exec(qr.DeleteSensor(), sensor_id)
 	if err != nil {
-		logger.Error.Println("Error in inserting new park: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Sensor delete error, transaction rolled back:", err)
+		return
 	}
+
+	// 4. Commit
+	err = tx.Commit()
+	if err != nil {
+		logger.Error.Println("Transaction commit failed:", err)
+		return
+	}
+
+	logger.Info.Println("Sensor removed successfully")
 }
 
 func removePark(db *sql.DB, reader *bufio.Reader) {
-	//fmt.Println("\nremovePark")
 	fmt.Print("\nInsert park id to delete: ")
 	park_id, _ := reader.ReadString('\n')
 	park_id = strings.TrimSpace(park_id)
 
-	//verificare se il parco è osservato
+	// Avvia una transazione
+	tx, err := db.Begin()
+	if err != nil {
+		logger.Error.Println("Transaction begin failed:", err)
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback()
+			logger.Error.Println("Recovered from panic, transaction rolled back:", r)
+		}
+	}()
+
+	// 1. Verifica se il parco è osservato
 	var is_observed bool
 	var sensor_id sql.NullInt64
-	err := db.QueryRow(qr.GetParkStatus(), park_id).Scan(&is_observed, &sensor_id)
+	err = tx.QueryRow(qr.GetParkStatus(), park_id).Scan(&is_observed, &sensor_id)
 	if err != nil {
-		logger.Error.Println("Query error: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Query error, transaction rolled back:", err)
+		return
 	}
 
 	if is_observed {
-		//is_observed = true -> il parco ha un sensore attivo
+		_ = tx.Rollback()
 		logger.Error.Printf("\nYou need to deassociate it from the sensor %d to remove it\n", sensor_id.Int64)
 		return
 	}
 
-	_, err = db.Exec(qr.DeletePark(), park_id)
+	// 2. Cancella il parco
+	_, err = tx.Exec(qr.DeletePark(), park_id)
 	if err != nil {
-		logger.Error.Println("Error in deleting a park: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Error deleting park, transaction rolled back:", err)
+		return
 	}
+
+	// 3. Commit finale
+	err = tx.Commit()
+	if err != nil {
+		logger.Error.Println("Transaction commit failed:", err)
+		return
+	}
+
+	logger.Info.Println("Park removed successfully")
 }
 
 func associateSensor(db *sql.DB, reader *bufio.Reader) {
-	//fmt.Println("\nremovePark")
+	//esecuzione di una transazione
 	fmt.Print("\nInsert park id: ")
 	park_id, _ := reader.ReadString('\n')
 	park_id = strings.TrimSpace(park_id)
@@ -250,42 +306,97 @@ func associateSensor(db *sql.DB, reader *bufio.Reader) {
 	sensor_id, _ := reader.ReadString('\n')
 	sensor_id = strings.TrimSpace(sensor_id)
 
-	//modifica del valore is_observed del parco per indicare che è stato posto un sensore e che tra poco sarà attivato
-	_, err := db.Exec(qr.UpdateParkStatus(), true, park_id)
+	tx, err := db.Begin()
 	if err != nil {
-		logger.Error.Println("Park update error: ", err)
+		logger.Error.Println("Transaction error: ", err)
 	}
 
-	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
-	_, err = db.Exec(qr.UpdateSensorPark(), park_id, sensor_id)
+	// Se qualcosa va storto, annulla tutto
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback()
+			logger.Error.Println("Recovered from panic, transaction rolled back:", r)
+		}
+	}()
+
+	// 1. Update sul parco
+	_, err = tx.Exec(qr.UpdateParkStatus(), true, park_id)
 	if err != nil {
-		logger.Error.Println("Sensor update error: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Park update error, transaction rolled back:", err)
+		return
 	}
+
+	// 2. Update sul sensore
+	_, err = tx.Exec(qr.UpdateSensorPark(), park_id, sensor_id)
+	if err != nil {
+		_ = tx.Rollback()
+		logger.Error.Println("Sensor update error, transaction rolled back:", err)
+		return
+	}
+
+	// Tutto ok, conferma la transazione
+	err = tx.Commit()
+	if err != nil {
+		logger.Error.Println("Transaction commit failed:", err)
+		return
+	}
+
+	logger.Info.Println("Sensor associated to park successfully")
 }
 
 func deassociateSensor(db *sql.DB, reader *bufio.Reader) {
-	//fmt.Println("\nremovePark")
 	fmt.Print("\nInsert sensor id: ")
 	sensor_id, _ := reader.ReadString('\n')
 	sensor_id = strings.TrimSpace(sensor_id)
 
+	// Avvia una transazione
+	tx, err := db.Begin()
+	if err != nil {
+		logger.Error.Println("Transaction begin failed:", err)
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback()
+			logger.Error.Println("Recovered from panic, transaction rolled back:", r)
+		}
+	}()
+
+	// 1. Ricava il park_id associato al sensore
 	var park_id int
-	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
+	err = tx.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
 	if err != nil {
-		logger.Error.Println("Query error: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Query park_id failed, transaction rolled back:", err)
+		return
 	}
 
-	//modifica del valore is_observed del parco per indicare che non è più osservato
-	_, err = db.Exec(qr.UpdateParkStatus(), false, park_id)
+	// 2. Setta is_observed a false per il parco
+	_, err = tx.Exec(qr.UpdateParkStatus(), false, park_id)
 	if err != nil {
-		logger.Error.Println("Park update error: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Park update error, transaction rolled back:", err)
+		return
 	}
 
-	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
-	_, err = db.Exec(qr.UpdateSensorParkAndStatus(), nil, false, sensor_id)
+	// 3. Disassocia il sensore e aggiorna il suo stato
+	_, err = tx.Exec(qr.UpdateSensorParkAndStatus(), nil, false, sensor_id)
 	if err != nil {
-		logger.Error.Println("Sensor update error: ", err)
+		_ = tx.Rollback()
+		logger.Error.Println("Sensor update error, transaction rolled back:", err)
+		return
 	}
+
+	// Commit finale se tutto è andato bene
+	err = tx.Commit()
+	if err != nil {
+		logger.Error.Println("Transaction commit failed:", err)
+		return
+	}
+
+	logger.Info.Println("Sensor deassociated from park successfully")
 }
 
 func waitForEnter(reader *bufio.Reader) {
