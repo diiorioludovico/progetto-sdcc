@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"progetto/server/go/logger"
 	qr "progetto/server/go/query"
 	"runtime"
 	"strings"
@@ -98,7 +99,8 @@ func showSensors(db *sql.DB) {
 
 	rows, err := db.Query(qr.ShowSensors())
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
+
 	}
 
 	defer rows.Close()
@@ -108,7 +110,7 @@ func showSensors(db *sql.DB) {
 	for rows.Next() {
 		var sen Sensor
 		if err := rows.Scan(&sen.Id, &sen.Is_active, &sen.Park_id, &sen.Serial_number); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
 		}
 
 		sensors = append(sensors, sen)
@@ -116,11 +118,11 @@ func showSensors(db *sql.DB) {
 	}
 
 	if err := rows.Err(); err != nil {
-		fmt.Println("ERROR: rows error: ", err)
+		logger.Error.Println("Rows error: ", err)
 	} else if count > 0 {
 		sensorTable(sensors)
 	} else {
-		fmt.Println("There are not sensor records")
+		logger.Info.Println("There are not sensor records")
 	}
 }
 
@@ -130,7 +132,7 @@ func showParks(db *sql.DB) {
 
 	rows, err := db.Query(qr.ShowParks())
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	defer rows.Close()
@@ -140,7 +142,7 @@ func showParks(db *sql.DB) {
 	for rows.Next() {
 		var park Park
 		if err := rows.Scan(&park.id, &park.location, &park.name, &park.is_observed); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
 		}
 
 		parks = append(parks, park)
@@ -148,11 +150,11 @@ func showParks(db *sql.DB) {
 	}
 
 	if err := rows.Err(); err != nil {
-		fmt.Println("ERROR: rows error: ", err)
+		logger.Error.Println("Rows error: ", err)
 	} else if count > 0 {
 		parkTable(parks)
 	} else {
-		fmt.Println("There are not park records")
+		logger.Info.Println("There are not park records")
 	}
 }
 
@@ -165,7 +167,7 @@ func addSensor(db *sql.DB, reader *bufio.Reader) {
 
 	_, err := db.Exec(qr.InsertSensor(), input)
 	if err != nil {
-		fmt.Println("ERROR: error in inserting new sensor: ", err)
+		logger.Error.Println("error in inserting new sensor: ", err)
 	}
 }
 
@@ -181,7 +183,7 @@ func addPark(db *sql.DB, reader *bufio.Reader) {
 
 	_, err := db.Exec(qr.InsertPark(), location, name)
 	if err != nil {
-		fmt.Println("ERROR: error in inserting new park: ", err)
+		logger.Error.Println("error in inserting new parl: ", err)
 	}
 }
 
@@ -195,20 +197,20 @@ func removeSensor(db *sql.DB, reader *bufio.Reader) {
 	var park_id sql.NullInt64
 	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	if park_id.Valid {
 		//park_id != NULL -> modifica del valore is_observed del parco con id = park_id
 		_, err := db.Exec(qr.UpdateParkStatus(), false, park_id)
 		if err != nil {
-			fmt.Println("ERROR: park update error: ", err)
+			logger.Error.Println("Park update error: ", err)
 		}
 	}
 
 	_, err = db.Exec(qr.DeleteSensor(), sensor_id)
 	if err != nil {
-		fmt.Println("ERROR: error in inserting new park: ", err)
+		logger.Error.Println("Error in inserting new park: ", err)
 	}
 }
 
@@ -223,18 +225,18 @@ func removePark(db *sql.DB, reader *bufio.Reader) {
 	var sensor_id sql.NullInt64
 	err := db.QueryRow(qr.GetParkStatus(), park_id).Scan(&is_observed, &sensor_id)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	if is_observed {
 		//is_observed = true -> il parco ha un sensore attivo
-		fmt.Printf("\nDeassociate the sensor %d from the park before to remove the park\n", sensor_id.Int64)
+		logger.Error.Printf("\nYou need to deassociate it from the sensor %d to remove it\n", sensor_id.Int64)
 		return
 	}
 
 	_, err = db.Exec(qr.DeletePark(), park_id)
 	if err != nil {
-		fmt.Println("ERROR: error in deleting a park: ", err)
+		logger.Error.Println("Error in deleting a park: ", err)
 	}
 }
 
@@ -251,13 +253,13 @@ func associateSensor(db *sql.DB, reader *bufio.Reader) {
 	//modifica del valore is_observed del parco per indicare che è stato posto un sensore e che tra poco sarà attivato
 	_, err := db.Exec(qr.UpdateParkStatus(), true, park_id)
 	if err != nil {
-		fmt.Println("ERROR: park update error: ", err)
+		logger.Error.Println("Park update error: ", err)
 	}
 
 	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
 	_, err = db.Exec(qr.UpdateSensorPark(), park_id, sensor_id)
 	if err != nil {
-		fmt.Println("ERROR: sensor update error: ", err)
+		logger.Error.Println("Sensor update error: ", err)
 	}
 }
 
@@ -270,21 +272,20 @@ func deassociateSensor(db *sql.DB, reader *bufio.Reader) {
 	var park_id int
 	err := db.QueryRow(qr.GetSensorParkid(), sensor_id).Scan(&park_id)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	//modifica del valore is_observed del parco per indicare che non è più osservato
 	_, err = db.Exec(qr.UpdateParkStatus(), false, park_id)
 	if err != nil {
-		fmt.Println("ERROR: park update error: ", err)
+		logger.Error.Println("Park update error: ", err)
 	}
 
 	//modifica del valore park_id del sensore per indicare il parco a cui è stato assegnato
 	_, err = db.Exec(qr.UpdateSensorParkAndStatus(), nil, false, sensor_id)
 	if err != nil {
-		fmt.Println("ERROR: sensor update error: ", err)
+		logger.Error.Println("Sensor update error: ", err)
 	}
-
 }
 
 func waitForEnter(reader *bufio.Reader) {

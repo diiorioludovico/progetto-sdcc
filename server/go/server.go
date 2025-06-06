@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"progetto/server/go/fejs"
+	"progetto/server/go/logger"
 	"progetto/server/go/menu"
 	pb "progetto/server/go/proto"
 	qr "progetto/server/go/query"
@@ -26,27 +27,35 @@ type server struct {
 }
 
 func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response, error) {
-	//fmt.Println("Ricevuti dati dal sensore: ", in)
+	logger.Info.Println("Received Data: ", in)
+
 	_, err := s.db.Exec(qr.GetMeasure(), in.DeviceID, in.ParkID, in.Temperature, in.Humidity, in.Brightness, in.AirQuality, in.Timestamp)
+
 	if err != nil {
-		fmt.Println("ERROR: error in inserting new measure: ", err)
+		logger.Error.Println("Error in inserting new measure: ", err)
+		response := &pb.Response{
+			Message: err.Error(),
+			Success: false,
+		}
+		return response, nil
 	}
 
 	response := &pb.Response{
-		Message: "dati ricevuti correttamente",
+		Message: "data received correctly",
 		Success: true,
 	}
+
+	logger.Info.Println("Data successfully sent")
 
 	return response, nil
 }
 
 func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification) (*pb.CommunicationConfiguration, error) {
-	//fmt.Println("Ricevuto primo feedback dal sensore ", in.SerialNumber)
-
 	//recupero del record associato al sensore e preparazione dellla response
+	logger.Info.Println("Received Data: ", in)
 	rows, err := s.db.Query(qr.GetSensor(), in.SerialNumber)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	var sensor menu.Sensor
@@ -54,7 +63,8 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 
 	for rows.Next() {
 		if err := rows.Scan(&sensor.Id, &sensor.Is_active, &sensor.Park_id, &sensor.Serial_number); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
+
 		}
 		count += 1
 	}
@@ -62,9 +72,9 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	var response *pb.CommunicationConfiguration
 
 	if err := rows.Err(); err != nil {
-		fmt.Println("ERROR: rows error: ", err)
+		logger.Error.Println("Rows error: ", err)
 	} else if count == 0 {
-		fmt.Println("INFO: no record found")
+		logger.Info.Println("No record found")
 		return response, nil
 	}
 
@@ -77,28 +87,35 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	//modifica del valore is_active del sensore per indicare che è attivo nel parco e può iniziare ad inviare dati
 	res, err := s.db.Exec(qr.UpdateSensorStatus(), true, sensor.Id)
 	if err != nil {
-		fmt.Println("ERROR: update error: ", err)
+		logger.Error.Println("Update error: ", err)
 	}
 
 	_, err = res.RowsAffected()
 	if err != nil {
-		fmt.Println("ERROR: rows affected error: ", err)
+		logger.Error.Println("Rows affected error: ", err)
 	}
 
 	return response, nil
 }
 
 func main() {
+	logger.Init("app.log")
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		fmt.Println("ERROR: failed to listen: ", err)
+		logger.Error.Println("Failed to listen: ", err)
+	} else {
+		logger.Info.Println("Server listening for edge request")
 	}
 
 	conn := "root:root@tcp(localhost:3306)/edgedb"
 	db, err := sql.Open("mysql", conn)
 	if err != nil {
-		fmt.Println("ERROR: problem in opening db connection: ", err)
+		logger.Error.Println("Problem in opening db connection: ", err)
+	} else {
+		logger.Info.Println("Connection to database created")
 	}
+
 	defer db.Close()
 
 	s := grpc.NewServer()
@@ -106,19 +123,19 @@ func main() {
 
 	//verifica della connessione
 	if err := db.Ping(); err != nil {
-		fmt.Println("ERROR: ping error: ", err)
+		logger.Error.Println("Ping error: ", err)
 	} else {
-		fmt.Println("INFO: successful connection to db")
+		logger.Info.Println("Successful connection to db")
 	}
 
 	//goroutine per il menu
-	//go menu.ShowMenu(db)
+	go menu.ShowMenu(db)
 
 	//goroutine per mostrare servizio per backend
 	go fejs.StartFrontendSetup(db)
 
-	fmt.Println("Server listening at ", lis.Addr())
+	logger.Info.Println("Server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
-		fmt.Println("ERROR: failed to serve: ", err)
+		logger.Error.Println("Failed to serve: ", err)
 	}
 }

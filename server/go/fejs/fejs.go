@@ -3,9 +3,10 @@ package fejs
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"progetto/server/go/logger"
 	qr "progetto/server/go/query"
+
 	"strings"
 )
 
@@ -60,14 +61,11 @@ func getData(r *http.Request) MetricResp {
 	metric = strings.ToLower(metric)
 	metric = strings.ReplaceAll(metric, " ", "_")
 
-	fmt.Println(park_id)
-	fmt.Println(metric)
-
 	query := qr.GetMetricMeasures((metric))
 
 	rows, err := dbsql.Query(query, park_id)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	defer rows.Close()
@@ -77,11 +75,15 @@ func getData(r *http.Request) MetricResp {
 	for rows.Next() {
 		var metric Metric
 		if err := rows.Scan(&metric.Hour, &metric.Value); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
 		}
 
 		data.Metrics = append(data.Metrics, metric)
 	}
+
+	logger.Info.Println("getData Data: ")
+	logger.Info.Println(data)
+
 	return data
 }
 
@@ -98,7 +100,7 @@ func makeResponse() JSMessage {
 
 	rows, err := dbsql.Query(query)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	defer rows.Close()
@@ -109,7 +111,7 @@ func makeResponse() JSMessage {
 	for rows.Next() {
 		var park Park
 		if err := rows.Scan(&park.Id, &park.Name, &park.Location, &park.Temperature, &park.Humidity, &park.Brightness, &park.AirQuality, &park.Timestamp); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
 		}
 
 		data.Parks = append(data.Parks, park)
@@ -118,9 +120,12 @@ func makeResponse() JSMessage {
 	}
 
 	if count == 0 {
-		fmt.Println("INFO: no observed parks")
+		logger.Info.Println("No observed parks")
 		return data
 	}
+
+	logger.Info.Println("hello_handler Data: ")
+	logger.Info.Println(data)
 
 	return data
 }
@@ -130,7 +135,7 @@ func getOldData(id string) []ParksOldData {
 
 	rows, err := dbsql.Query(query, id)
 	if err != nil {
-		fmt.Println("ERROR: query error: ", err)
+		logger.Error.Println("Query error: ", err)
 	}
 
 	defer rows.Close()
@@ -140,11 +145,14 @@ func getOldData(id string) []ParksOldData {
 	for rows.Next() {
 		var data ParksOldData
 		if err := rows.Scan(&data.Date, &data.Max, &data.Min); err != nil {
-			fmt.Println("ERROR: scan error: ", err)
+			logger.Error.Println("Scan error: ", err)
 		}
 		data.Icon = "1"
 		old_data = append(old_data, data)
 	}
+
+	logger.Info.Println("Old data: ")
+	logger.Info.Println(old_data)
 
 	return old_data
 }
@@ -157,5 +165,6 @@ func StartFrontendSetup(db *sql.DB) {
 	dbsql = db
 	http.HandleFunc("/api/hello", helloHandler)
 	http.HandleFunc("/api/getData", getMetricData)
+	logger.Info.Println("Made availables hello e getData APIs")
 	http.ListenAndServe(":8080", nil)
 }

@@ -6,20 +6,22 @@ import time
 import edge_pb2
 import edge_pb2_grpc
 import traceback
-
 import os
+import logging
 
 thresholds = {"temperature": 0.5,
               "humidity": 2,
               "brightness": 20,
               "air_quality": 5}
 
+logger = logging.getLogger("EdgeDevice")
+
 class ParkSensor:
 
     def __init__(self, server, serial_number):
         self.server = server
         self.serial_number = serial_number
-        print("INFO: Sensor initialization")
+        logger.info("Sensor initialization")
 
         #initialization comunication with server
         result = self.init()
@@ -27,6 +29,9 @@ class ParkSensor:
         self.deviceID = result.deviceID
         self.parkID = result.parkID
         self.interval = result.interval
+
+        logger.info("Edge device ID: " + str(self.deviceID))
+        logger.info("Associated park ID: " + str(self.parkID))
 
         self.last_sent_data = None
     
@@ -42,20 +47,17 @@ class ParkSensor:
                 )
 
                 result = stub.Configuration(data)
-                print("INFO: initialization completed")
+                logger.info("Initialization completed")
     
                 return result
         except grpc.RpcError as e:
-            print("ERROR: gRPC error: " + str(e))
+            logger.error("gRPC error: " + str(e))
             traceback.print_exc()
-            exit(0)
+            
         except Exception as e:
-            print("ERROR: comunication error: " + str(e))
+            logger.error("Comunication error: " + str(e))
             traceback.print_exc()
-            exit(0)
-    
-
-
+            
     def getHourAndMonth(self, timestamp):
         #"2025-05-17T15:33:56.3260074+00:00"
         raw_hour = int(timestamp[11:13])
@@ -85,7 +87,7 @@ class ParkSensor:
         brightness = advancedSensorSimulator.get_brightness(timestamp)
         air_quality = advancedSensorSimulator.get_air_quality(timestamp)                                                           
 
-        print("INFO: Data successfully recordered")
+        logger.info("Data successfully recordered")
 
         return {
             "deviceID": self.deviceID,
@@ -98,7 +100,7 @@ class ParkSensor:
         }
     
     def validateData(self, data):
-        print("INFO: Validating data")
+        logger.info("Validating data")
         for valore in data.values():
             if valore == None:
                 return False
@@ -135,15 +137,15 @@ class ParkSensor:
                 result = future.result()
     
                 if result.success:
-                    print("INFO: Data sent successfully: {result.message}")
+                    logger.info("Data sent successfully: {result.message}")
                 else:
-                    print("ERROR: unsuccessfully comunication: {result.message}")
+                    logger.error("Unsuccessfully comunication: {result.message}")
         except grpc.RpcError as e:
-            print("ERROR: gRPC error: " + str(e))
+            logger.error("gRPC error: " + str(e))
             traceback.print_exc()
             exit(0)
         except Exception as e:
-            print("ERROR: comunication error: " + str(e))
+            logger.error("Comunication error: " + str(e))
             traceback.print_exc()
             exit(0)
 
@@ -155,29 +157,35 @@ class ParkSensor:
             try:
                 #1) collezione dei dati
                 data = self.getData()
-                print("INFO: " + str(data))
+                logger.info("Recorded data: " + str(data))
 
                 #2) validazione dei dati
                 isValid = self.validateData(data)
                 
                 #3) invia i dati
                 if isValid:
+                    logger.info("Valid data, they will be sent")
                     self.sendData(data)
                     self.last_sent_data = data
                 else: 
-                    print("INFO: Invalid data, they will not be sent")
+                    logger.info("Invalid data, they will not be sent")
 
                 #4) attesa di {interval} secondi prima di riminciare il ciclo
-                print("INFO: sleeping " + str(self.interval) + " seconds until next collection")
+                logger.info("sleeping " + str(self.interval) + " seconds until next collection")
                 time.sleep(int(self.interval))
                                 
             except Exception as e:
-                print("ERROR: problem in the sensor execution: " + str(e))
+                logger.error("Problem in the sensor execution: " + str(e))
                 traceback.print_exc()
                 exit(0)
 
 def main():
-    print("INFO: Starting edge device: " + os.getcwd())
+    logging.basicConfig(
+        filename='edge.log',
+        filemode='a',  # append (usa 'w' per sovrascrivere ogni volta)
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
 
     # Apri e leggi il file JSON
     with open("client/config.json", "r") as f:
@@ -185,6 +193,8 @@ def main():
     
     server = config.get("server")
     serial_number = config.get("serial_number")
+
+    logger.info("Starting edge device with serial number " + str(serial_number))
 
     #istanza del collector
     sensor = ParkSensor(server, serial_number)
