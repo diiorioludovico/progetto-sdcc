@@ -2,7 +2,7 @@ const description = `
      <div>
       <h2>Cos'è LudoParks?</h2>
       <p>
-        ParkSense è un sistema distribuito per il monitoraggio dei parchi comunali.
+        LudoParks è un sistema distribuito per il monitoraggio dei parchi comunali di Aprilia.
       </p>
       <p>
         Attraverso dispositivi edge installati nei parchi, la piattaforma raccoglie dati ambientali  
@@ -11,12 +11,11 @@ const description = `
         in tempo reale — come temperatura, umidità, luminosità e qualità dell’aria — e li rende
       </p>
       <p>
-        disponibili tramite una dashboard semplice e interattiva.
+        disponibili tramite una dashboard semplice ed interattiva.
       </p>
       <ul>
         <li><p>Visualizza lo stato dei parchi in tempo reale</p></li>
-        <li><p>Rileva anomalie ambientali in modo tempestivo</p></li>
-        <li><p>Ottimizza la gestione e manutenzione</p></li>
+        <li><p>Aiuta nella gestione e manutenzione</p></li>
         <li><p>Offre dati trasparenti ai cittadini</p></li>
       </ul>
      </div>
