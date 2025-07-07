@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package edge;
+
+option go_package = "progetto-sdcc/proto;proto";
+
+message SensorData {
+    string deviceID = 1;
+    string parkID = 2;
+    float temperature = 3;
+    float humidity = 4;
+    float brightness = 5;
+    float air_quality = 6;
+    string timestamp = 7;
+}
+
+message SensorIdentification {
+  string serial_number = 1;
+}
+
+message Response {
+    string message = 1;
+    bool success = 2;
+}
+
+message CommunicationConfiguration {
+  string deviceID = 1;
+  string parkID = 2;
+  float interval = 3;
+}
+
+service SensorService {
+  rpc SendData(SensorData) returns (Response);
+  rpc Configuration(SensorIdentification) returns (CommunicationConfiguration);
+}

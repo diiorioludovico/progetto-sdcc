@@ -1,6 +1,0 @@
-INFO: 2025/06/06 17:35:16 server.go:99: Server listening for edge request
-INFO: 2025/06/06 17:35:16 server.go:108: Connection to database created
-INFO: 2025/06/06 17:35:16 server.go:113: Service for edge available
-INFO: 2025/06/06 17:35:16 server.go:119: Successful connection to db
-INFO: 2025/06/06 17:35:16 server.go:128: Server listening at  [::]:50051
-INFO: 2025/06/06 17:35:16 fejs.go:162: Made availables hello e getData APIs
