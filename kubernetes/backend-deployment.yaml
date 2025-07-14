@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      hostNetwork: true
+      containers:
+      - name: backend
+        image: ludovicodiiorio/cloud-server-repo:0.01
+        ports:
+        - containerPort: 8080
+          name: http-api
+        - containerPort: 50051
+          name: grpc-api
+        env:
+        - name: HTTP_PORT
+          value: "8080"
+        - name: GRPC_PORT
+          value: "50051"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+
+---
+# api-server-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http-api
+    port: 8080
+    targetPort: 8080
+    nodePort: 30007
+    protocol: TCP
+  - name: grpc-api
+    port: 50051
+    targetPort: 50051
+    nodePort: 31008
+    protocol: TCP
+  type: NodePort
