@@ -137,9 +137,9 @@ class ParkSensor:
                 result = future.result()
     
                 if result.success:
-                    logger.info("Data sent successfully: {result.message}")
+                    logger.info("Data sent successfully: " + str(result.message))
                 else:
-                    logger.error("Unsuccessfully comunication: {result.message}")
+                    logger.error("Unsuccessfully comunication: " + str(result.message))
         except grpc.RpcError as e:
             logger.error("gRPC error: " + str(e))
             traceback.print_exc()
@@ -182,13 +182,13 @@ class ParkSensor:
 def main():
     logging.basicConfig(
         filename='edge.log',
-        filemode='a',  # append (usa 'w' per sovrascrivere ogni volta)
+        filemode='w',  # append (usa 'w' per sovrascrivere ogni volta)
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
     # Apri e leggi il file JSON
-    with open("client/config.json", "r") as f:
+    with open("config.json", "r") as f:
         config = json.load(f)
     
     server = config.get("server")

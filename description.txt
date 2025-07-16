@@ -7,3 +7,78 @@
                     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
         -comando: protoc -I . --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative edge.proto
 
+2) CREAZIONE DELL'AMBIENTE DI PROD:
+    a) LOCATION DELLE APPLICAZIONI:
+        - BACKEND API-SERVER: si trova in un pod di un cluster kubernetes su un'istanza EC2
+        - BACKEND MENU: si trova in esecuzione in una qualsiasi macchina (in locale)
+        - FRONTEND: si trova in un pod di un cluster kubernetes su un'istanza EC2
+        - EDGE: si trova in un pod di un cluster k3s su un'istanza EC2
+
+3) BACKEND API-SERVER:
+    - è importante fare attenzione all'indirizzo IP con il quale si connette il server per accedere al database. Deve esserci 
+      l'indirizzo IP della macchina locale sul quale si trova il db
+    - passi per creazione ed esecuzione del container:
+        1) docker build -t cloud-server .
+        2) docker run -p 8080:8080 -p 50051:50051 cloud-server
+
+3) BACKEND MENU: qui non serve creare un container ma semplicemente un eseguibile e bisogna fare in modo che si possa collegare senza 
+   problemi al db.
+    - è importante fare attenzione all'indirizzo IP con il quale si connette il server per accedere al database. Deve esserci 
+      l'indirizzo IP della macchina locale sul quale si trova il db.
+
+4) FRONTEND: bisogna fare attenzione all'indirizzo IP del backend al quale si collega, perchè va messo quello della macchina che 
+    contiene minikube
+    - passi per creazione ed esecuzione del container:
+        1) docker build -t web-server .
+        2) docker run -p 80:80 web-server
+
+5) EDGE: nel file config.json bisgona far sì che ci sia il corretto indirizzo IP della macchina sul quale gira il minikuber con il 
+   container cloud-server
+
+6) CREAZIONE DEL CLUSTER MINIKUBE:
+    - per abilitare l'ingress bisogna eseguire il seguente comando: 
+        minikube addons enable ingress //abilita ingress controller
+
+7) DATABASE: il db si trova in un container dentro un'istanza EC2 di AWS. I dati sono salvati all'interno di un volume. 
+    - per connettersi al db usare il seguente comando:  mysql -h localhost -P 3306 -u root -p
+    - comando per creazione tabella 'parks':        CREATE TABLE parks (
+                                                        id INT(11) NOT NULL AUTO_INCREMENT,
+                                                        location VARCHAR(50) DEFAULT NULL,
+                                                        name VARCHAR(50) DEFAULT NULL,
+                                                        is_observed TINYINT(1) NOT NULL DEFAULT '0',
+                                                        PRIMARY KEY (id));
+    - comando per creazione tabella 'sensors':      CREATE TABLE `sensors` (
+                                                        `id` INT(11) NOT NULL AUTO_INCREMENT,
+                                                        `is_active` TINYINT(1) NOT NULL DEFAULT '0',
+                                                        `park_id` INT(11) NULL DEFAULT NULL,
+                                                        `serial_number` VARCHAR(100) NOT NULL,
+                                                        PRIMARY KEY (`id`) USING BTREE,
+                                                        UNIQUE INDEX `serial_number` (`serial_number`) USING BTREE,
+                                                        INDEX `park_id` (`park_id`) USING BTREE,
+                                                        CONSTRAINT `sensors_ibfk_1` FOREIGN KEY (`park_id`) REFERENCES `parks` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT
+                                                    )
+                                                    AUTO_INCREMENT=4;
+    - comando per creazione tabella 'measures':     CREATE TABLE `measures` (
+                                                        `id` INT(11) NOT NULL AUTO_INCREMENT,
+                                                        `sensor_id` INT(11) NOT NULL,
+                                                        `park_id` INT(11) NOT NULL,
+                                                        `temperature` FLOAT NOT NULL,
+                                                        `humidity` FLOAT NOT NULL,
+                                                        `brightness` FLOAT NOT NULL,
+                                                        `air_quality` FLOAT NOT NULL,
+                                                        `timestamp` TIMESTAMP NOT NULL,
+                                                        PRIMARY KEY (`id`) USING BTREE,
+                                                        INDEX `sensor_id` (`sensor_id`) USING BTREE,
+                                                        INDEX `park_id` (`park_id`) USING BTREE,
+                                                        CONSTRAINT `measures_ibfk_1` FOREIGN KEY (`sensor_id`) REFERENCES `sensors` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+                                                        CONSTRAINT `measures_ibfk_2` FOREIGN KEY (`park_id`) REFERENCES `parks` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT
+                                                    )
+                                                    AUTO_INCREMENT=53
+                                                    ;
+
+8) COMANDO PER CONSENTIRE SERVIZI: c'era un problema legato al fatto che minikube fosse in un ambiente chiuso ovvero che le richieste 
+   in arrivo all'host nel quale gira non fossero reindirizzate a minikube ed ai service. Con il seguente comando, viene creata una
+   nuova regola nel firewall che consente il forwarding dalla porta dell'host a quella del service:
+    - nohup kubectl port-forward service/frontend-service 32009:80 --address 0.0.0.0 &
+    - nohup kubectl port-forward service/backend-service 31008:50051 --address 0.0.0.0 &
+    - nohup kubectl port-forward service/backend-service 30007:8080 --address 0.0.0.0 &

@@ -6,9 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"progetto-sdcc/fejs"
 	"progetto-sdcc/logger"
-	"progetto-sdcc/menu"
 	pb "progetto-sdcc/proto"
 	qr "progetto-sdcc/query"
 	"strconv"
@@ -16,6 +14,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
 )
+
+type Sensor struct {
+	Id            int
+	Is_active     bool
+	Park_id       sql.NullInt64
+	Serial_number string
+}
 
 var (
 	port = flag.Int("port", 50051, "The server port")
@@ -60,7 +65,7 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 		logger.Error.Println("Query error: ", err)
 	}
 
-	var sensor menu.Sensor
+	var sensor Sensor
 	var count int
 
 	for rows.Next() {
@@ -113,7 +118,7 @@ func main() {
 	}
 
 	// creazione della connessione col db
-	conn := "root:root@tcp(localhost:3306)/edgedb"
+	conn := "root:root@tcp(52.86.21.127:3306)/edge"
 	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		logger.Error.Println("Problem in opening db connection: ", err)
@@ -135,9 +140,6 @@ func main() {
 	} else {
 		logger.Info.Println("Successful connection to db")
 	}
-
-	//goroutine per mostrare servizio per frontend
-	go fejs.StartFrontendSetup(db)
 
 	// avvio del server gRPC
 	logger.Info.Println("Server listening at ", lis.Addr())

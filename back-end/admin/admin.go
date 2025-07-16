@@ -36,7 +36,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	// creazione della connessione col db
-	conn := "root:root@tcp(localhost:3306)/edgedb"
+	conn := "root:root@tcp(52.86.21.127:3306)/edge"
 	db, err := sql.Open("mysql", conn)
 	if err != nil {
 		logger.Error.Println("Problem in opening db connection: ", err)
