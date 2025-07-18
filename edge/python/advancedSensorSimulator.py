@@ -1,11 +1,14 @@
 import math
 import random
 import datetime
+import datetime
+from zoneinfo import ZoneInfo
 
 # Parametri globali per controllo rumore e anomalie
 NOISE_FACTOR = 0.1
 ANOMALY_PROBABILITY = 0.02
 SENSOR_FAILURE_PROBABILITY = 0.01
+ITALY_TIMEZONE = ZoneInfo("Europe/Rome")
 
 
 def _parse_timestamp(timestamp_str):
@@ -213,3 +216,8 @@ def get_air_quality(timestamp_str):
     
     # Possibilità di valore None
     return None if random.random() < SENSOR_FAILURE_PROBABILITY else pm10
+
+def get_timestamp():
+    now_in_italy = datetime.datetime.now(ITALY_TIMEZONE)
+    timestamp = now_in_italy.strftime("%Y-%m-%d %H:%M:%S.%f")
+    return timestamp

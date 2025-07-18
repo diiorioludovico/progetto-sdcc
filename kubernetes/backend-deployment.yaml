@@ -5,7 +5,7 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -17,17 +17,10 @@ spec:
       hostNetwork: true
       containers:
       - name: backend
-        image: ludovicodiiorio/cloud-server-repo:0.01
+        image: ludovicodiiorio/cloud-server-repo:0.08
         ports:
-        - containerPort: 8080
-          name: http-api
         - containerPort: 50051
           name: grpc-api
-        env:
-        - name: HTTP_PORT
-          value: "8080"
-        - name: GRPC_PORT
-          value: "50051"
 
 ---
 # api-server-service.yaml
@@ -39,11 +32,6 @@ spec:
   selector:
     app: backend
   ports:
-  - name: http-api
-    port: 8080
-    targetPort: 8080
-    nodePort: 30007
-    protocol: TCP
   - name: grpc-api
     port: 50051
     targetPort: 50051

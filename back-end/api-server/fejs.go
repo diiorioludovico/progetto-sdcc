@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"strings"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // API Response hello

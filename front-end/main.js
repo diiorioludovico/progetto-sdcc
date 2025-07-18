@@ -47,7 +47,7 @@ document.getElementById("metric-modal").addEventListener("click", () => {
 });
 
 function getParksData() {
-  fetch("http://44.214.125.195:30007/api/hello")
+  fetch("http://44.214.125.195:31003/api/hello")
     .then(response => {
       if (!response.ok) {
         // Controlla se la risposta HTTP è andata a buon fine (status 200-299)
@@ -250,7 +250,7 @@ async function renderMetricChart(metricName) {
 }
 
 function getMetricData(metricName) {
-  return fetch(`http://44.214.125.195:30007/api/getData?id=${park_id}&metric=${metricName}`)
+  return fetch(`http://44.214.125.195:31003/api/getData?id=${park_id}&metric=${metricName}`)
     .then(response => {
       if (!response.ok) {
         // Controlla se la risposta HTTP è andata a buon fine (status 200-299)

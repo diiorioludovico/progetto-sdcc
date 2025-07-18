@@ -58,7 +58,7 @@ func (s *server) SendData(ctx context.Context, in *pb.SensorData) (*pb.Response,
 
 // funzione per la inizializzazione del sensore
 func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification) (*pb.CommunicationConfiguration, error) {
-	//recupero del record associato al sensore e preparazione dellla response
+	//recupero del record associato al sensore e preparazione della response
 	logger.Info.Println("Received Data: ", in)
 	rows, err := s.db.Query(qr.GetSensor(), in.SerialNumber)
 	if err != nil {
@@ -71,7 +71,6 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	for rows.Next() {
 		if err := rows.Scan(&sensor.Id, &sensor.Is_active, &sensor.Park_id, &sensor.Serial_number); err != nil {
 			logger.Error.Println("Scan error: ", err)
-
 		}
 		count += 1
 	}
@@ -88,7 +87,7 @@ func (s *server) Configuration(ctx context.Context, in *pb.SensorIdentification)
 	response = &pb.CommunicationConfiguration{
 		DeviceID: strconv.Itoa(sensor.Id),
 		ParkID:   strconv.FormatInt(sensor.Park_id.Int64, 10),
-		Interval: 10,
+		Interval: 60,
 	}
 
 	//modifica del valore is_active del sensore per indicare che è attivo nel parco e può iniziare ad inviare dati

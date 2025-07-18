@@ -9,6 +9,8 @@ import traceback
 import os
 import logging
 
+DEFAULT_INTERVAL = 60
+
 thresholds = {"temperature": 0.5,
               "humidity": 2,
               "brightness": 20,
@@ -29,6 +31,8 @@ class ParkSensor:
         self.deviceID = result.deviceID
         self.parkID = result.parkID
         self.interval = result.interval
+        if self.interval == 0:
+            self.interval = DEFAULT_INTERVAL
 
         logger.info("Edge device ID: " + str(self.deviceID))
         logger.info("Associated park ID: " + str(self.parkID))
@@ -59,7 +63,7 @@ class ParkSensor:
             traceback.print_exc()
             
     def getHourAndMonth(self, timestamp):
-        #"2025-05-17T15:33:56.3260074+00:00"
+        #"2025-07-18 13:46:34.644719"
         raw_hour = int(timestamp[11:13])
 
         if(raw_hour > 4 and raw_hour <= 9):
@@ -79,7 +83,7 @@ class ParkSensor:
 
 
     def getData(self):
-        timestamp = str(datetime.datetime.now())
+        timestamp = advancedSensorSimulator.get_timestamp()
 
         #per ogni metrica, con probabilità dell'1% non viene generato il valore
         temperature = advancedSensorSimulator.get_temperature(timestamp)
@@ -192,7 +196,7 @@ def main():
         config = json.load(f)
     
     server = config.get("server")
-    serial_number = config.get("serial_number")
+    serial_number = os.getenv("SERIAL_NUMBER")
 
     logger.info("Starting edge device with serial number " + str(serial_number))
 

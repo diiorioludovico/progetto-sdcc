@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-deployment
+  labels:
+    app: edge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge
+  template:
+    metadata:
+      labels:
+        app: edge
+    spec:
+      containers:
+      - name: edge
+        image: ludovicodiiorio/edge-repo:0.01
+        envFrom: # Inietta tutte le chiavi del ConfigMap come variabili d'ambiente
+        - configMapRef:
+            name: edge-cm # Nome del tuo ConfigMap
+

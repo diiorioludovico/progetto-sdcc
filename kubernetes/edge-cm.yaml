@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: edge-cm
+data:
+  SERIAL_NUMBER: "12345678fsd"
+    

@@ -81,4 +81,11 @@
    nuova regola nel firewall che consente il forwarding dalla porta dell'host a quella del service:
     - nohup kubectl port-forward service/frontend-service 32009:80 --address 0.0.0.0 &
     - nohup kubectl port-forward service/backend-service 31008:50051 --address 0.0.0.0 &
-    - nohup kubectl port-forward service/backend-service 30007:8080 --address 0.0.0.0 &
+    - nohup kubectl port-forward service/api-server-service 31003:8080 --address 0.0.0.0 &
+
+9) INSTALLAZIONE k3s SU ISTANZA EC2:
+    -per scaricare: curl -sfL https://get.k3s.io | sh -
+    -avvia il servizio K3s: sudo systemctl start k3s
+    -abilita l'avvio automatico: sudo systemctl enable k3s
+    -verifica lo stato: sudo systemctl status k3s
+
