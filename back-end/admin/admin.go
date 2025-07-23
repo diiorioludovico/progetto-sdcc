@@ -238,32 +238,34 @@ func removeSensor(db *sql.DB, reader *bufio.Reader) {
 		return
 	}
 
-	// 2. Se associato, aggiorna is_observed del parco
-	if park_id.Valid {
+	// 2. Se non è associato, allora non è possibile rimouverlo, ma prima va disassociato
+	if !park_id.Valid {
 		_, err = tx.Exec(qr.UpdateParkStatus(), false, park_id.Int64)
 		if err != nil {
 			_ = tx.Rollback()
 			logger.Error.Println("Park update error, transaction rolled back:", err)
 			return
 		}
-	}
 
-	// 3. Elimina il sensore
-	_, err = tx.Exec(qr.DeleteSensor(), sensor_id)
-	if err != nil {
-		_ = tx.Rollback()
-		logger.Error.Println("Sensor delete error, transaction rolled back:", err)
-		return
-	}
+		// 3. Elimina il sensore
+		_, err = tx.Exec(qr.DeleteSensor(), sensor_id)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Error.Println("Sensor delete error, transaction rolled back:", err)
+			return
+		}
 
-	// 4. Commit
-	err = tx.Commit()
-	if err != nil {
-		logger.Error.Println("Transaction commit failed:", err)
-		return
-	}
+		// 3. Commit
+		err = tx.Commit()
+		if err != nil {
+			logger.Error.Println("Transaction commit failed:", err)
+			return
+		}
 
-	logger.Info.Println("Sensor removed successfully")
+		logger.Info.Println("Sensor removed successfully")
+	} else {
+		logger.Info.Println("You need to deassociate it from he associated park")
+	}
 }
 
 func removePark(db *sql.DB, reader *bufio.Reader) {
